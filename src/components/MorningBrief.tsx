@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import type {
   CalendarEventsResponse,
   CanvasAssignmentsResponse,
+  StretchEnrollResponse,
+  StretchSessionsResponse,
   WeatherResponse,
 } from "@/lib/types";
 import {
@@ -12,12 +14,10 @@ import {
   greetingForHour,
 } from "@/lib/denver";
 import {
-  PE_STRETCH_NAME,
   RTI_SCHEDULER_URL,
   STRETCH_DEADLINE_HOUR,
-  STRETCH_STEPS,
-  buildStretchUiState,
   clearStretchPick,
+  emptyStretchUiState,
   writeStretchPick,
   type StretchUiState,
 } from "@/lib/stretch";
@@ -52,17 +52,64 @@ export function MorningBrief({ initialWeather }: Props) {
     setNow(new Date());
 
     async function load() {
+      const forceStretch = new URLSearchParams(window.location.search).has(
+        "stretch",
+      );
+      const stretchQuery = forceStretch ? "?stretch=1" : "";
+      setStretch(emptyStretchUiState(forceStretch));
+
       try {
-        const [cRes, gRes] = await Promise.all([
+        const [cRes, gRes, sRes] = await Promise.all([
           fetch("/api/canvas/assignments", { cache: "no-store" }),
           fetch("/api/calendar/events", { cache: "no-store" }),
+          fetch(`/api/stretch/sessions${stretchQuery}`, { cache: "no-store" }),
         ]);
         if (!cRes.ok || !gRes.ok) throw new Error("Briefing APIs unavailable");
         const cJson = (await cRes.json()) as CanvasAssignmentsResponse;
         const gJson = (await gRes.json()) as CalendarEventsResponse;
+        const sJson = sRes.ok
+          ? ((await sRes.json()) as StretchSessionsResponse)
+          : null;
         if (cancelled) return;
         setCanvas(cJson);
         setCalendar(gJson);
+
+        if (sJson) {
+          const local = emptyStretchUiState(
+            Boolean(sJson.isStretchMorning) || forceStretch,
+          );
+          let pick = local.pick;
+          if (sJson.selected) {
+            pick = {
+              dateKey: sJson.dateKey ?? local.dateKey,
+              sessionId: sJson.selected.sessionId,
+              sessionName: sJson.selected.name,
+              autoSelected: Boolean(sJson.autoEnrolled),
+              markedAt: sJson.asOf,
+              confirmedOnRti: Boolean(sJson.selfEnrolled),
+              mocked: sJson.source === "sample",
+              source: sJson.source,
+            };
+            writeStretchPick(pick);
+          } else if (pick?.autoSelected && sJson.sessions.length) {
+            // Keep local PE reminder until server enroll lands.
+          }
+
+          setStretch({
+            ...local,
+            isStretchMorning: Boolean(sJson.isStretchMorning) || forceStretch,
+            deadlinePassed: Boolean(sJson.deadlinePassed),
+            deadlineHour: sJson.deadlineHour ?? local.deadlineHour,
+            dateKey: sJson.dateKey ?? local.dateKey,
+            pick,
+            sessions: sJson.sessions,
+            source: sJson.source,
+            credentialMode: sJson.credentialMode,
+            note: sJson.note ?? null,
+            loginUrl: sJson.loginUrl ?? RTI_SCHEDULER_URL,
+            error: sJson.error ?? null,
+          });
+        }
       } catch (err) {
         if (!cancelled) {
           setLoadError(err instanceof Error ? err.message : "Load failed");
@@ -70,8 +117,6 @@ export function MorningBrief({ initialWeather }: Props) {
       }
     }
 
-    const forceStretch = new URLSearchParams(window.location.search).has("stretch");
-    setStretch(buildStretchUiState(forceStretch));
     void load();
 
     return () => {
@@ -83,23 +128,57 @@ export function MorningBrief({ initialWeather }: Props) {
   const greeting = parts ? greetingForHour(parts.hour) : "Good morning";
   const dateLabel = now ? formatDenverDateLong(now) : "Loading date…";
 
-  function markPicked(sessionName: string, confirmedOnRti: boolean) {
+  async function enrollOption(
+    sessionId: string,
+    sessionName: string,
+    autoSelected = false,
+  ) {
     if (!stretch) return;
-    const pick = {
-      dateKey: stretch.dateKey,
-      sessionName,
-      autoSelected: false,
-      markedAt: new Date().toISOString(),
-      confirmedOnRti,
-    };
-    writeStretchPick(pick);
-    setStretch({ ...stretch, pick });
+    setStretch({ ...stretch, enrollingId: sessionId, error: null });
+    try {
+      const res = await fetch("/api/stretch/enroll", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, sessionName, autoSelected }),
+      });
+      const json = (await res.json()) as StretchEnrollResponse;
+      const pick = {
+        dateKey: stretch.dateKey,
+        sessionId: json.sessionId,
+        sessionName: json.sessionName,
+        autoSelected: json.autoSelected,
+        markedAt: json.asOf,
+        confirmedOnRti: json.ok && !json.mocked,
+        mocked: json.mocked,
+        source: json.source,
+      };
+      writeStretchPick(pick);
+      setStretch({
+        ...stretch,
+        pick,
+        enrollingId: null,
+        note: json.note ?? stretch.note,
+        error: json.ok ? null : json.error ?? json.note ?? "Enrollment failed",
+        source: json.source,
+      });
+    } catch (err) {
+      setStretch({
+        ...stretch,
+        enrollingId: null,
+        error: err instanceof Error ? err.message : "Enrollment failed",
+      });
+    }
   }
 
   function resetPick() {
     if (!stretch) return;
     clearStretchPick(stretch.dateKey);
-    setStretch(buildStretchUiState(stretch.isStretchMorning));
+    setStretch({
+      ...stretch,
+      pick: null,
+      error: null,
+      note: stretch.note,
+    });
   }
 
   const conditionClass = CONDITION_CLASS[weather.condition] ?? styles.condClear;
@@ -273,89 +352,95 @@ export function MorningBrief({ initialWeather }: Props) {
           <section className={styles.section} aria-labelledby="stretch-heading">
             <div className={styles.sectionHead}>
               <h2 id="stretch-heading">Stretch</h2>
-              <span className={styles.badgeStretch}>Mon / Wed</span>
+              <div className={styles.badgeRow}>
+                <span className={styles.badgeStretch}>Mon / Wed</span>
+                {stretch.source ? (
+                  <span
+                    className={
+                      stretch.source === "sample"
+                        ? styles.badgeSample
+                        : styles.badgeLive
+                    }
+                  >
+                    {stretch.source === "sample" ? "Sample data" : "Live RTI"}
+                  </span>
+                ) : (
+                  <span className={styles.badgeMuted}>Loading…</span>
+                )}
+              </div>
             </div>
             <p className={styles.note}>
-              Choose a session on{" "}
-              <a href={RTI_SCHEDULER_URL} target="_blank" rel="noreferrer">
+              Tap a session to enroll on{" "}
+              <a href={stretch.loginUrl} target="_blank" rel="noreferrer">
                 rtischeduler.com
               </a>
               . If nothing is picked by {stretch.deadlineHour}:00 AM, we
               auto-select PE Stretch here (still confirm on RTI with school
               SSO).
             </p>
+            {stretch.note ? <p className={styles.note}>{stretch.note}</p> : null}
+            {stretch.error ? <p className={styles.error}>{stretch.error}</p> : null}
 
             {stretch.pick ? (
               <div className={styles.stretchResult}>
                 <p className={styles.stretchPick}>
-                  {stretch.pick.autoSelected ? "Auto-selected: " : "Picked: "}
+                  {stretch.pick.autoSelected ? "Auto-selected: " : "Enrolled: "}
                   <strong>{stretch.pick.sessionName}</strong>
                 </p>
-                {!stretch.pick.confirmedOnRti ? (
-                  <p className={styles.note}>
-                    Local reminder only — still confirm on RTI Scheduler (school
-                    SSO). Automation needs school login cookies we do not store.
-                  </p>
-                ) : null}
+                <p className={styles.note}>
+                  {stretch.pick.confirmedOnRti
+                    ? "Confirmed on RTI Scheduler."
+                    : stretch.pick.mocked
+                      ? "Mock enrollment (RTI secrets not set)."
+                      : "Saved here — RTI enrollment still pending or needs refreshed credentials."}
+                </p>
                 <div className={styles.actions}>
                   <a
                     className={styles.btnPrimary}
-                    href={RTI_SCHEDULER_URL}
+                    href={stretch.loginUrl}
                     target="_blank"
                     rel="noreferrer"
                   >
                     Open RTI Scheduler
                   </a>
-                  {!stretch.pick.confirmedOnRti ? (
-                    <button
-                      type="button"
-                      className={styles.btnGhost}
-                      onClick={() =>
-                        markPicked(stretch.pick!.sessionName, true)
-                      }
-                    >
-                      Mark confirmed on RTI
-                    </button>
-                  ) : null}
                   <button type="button" className={styles.btnGhost} onClick={resetPick}>
-                    Reset pick
+                    Choose again
                   </button>
                 </div>
               </div>
             ) : (
               <div className={styles.stretchFlow}>
-                <ol className={styles.steps}>
-                  {STRETCH_STEPS.map((step) => (
-                    <li key={step}>{step}</li>
+                <ul className={styles.optionList}>
+                  {stretch.sessions.map((session, i) => (
+                    <li key={session.sessionId} style={{ animationDelay: `${0.04 * i}s` }}>
+                      <button
+                        type="button"
+                        className={styles.optionButton}
+                        disabled={Boolean(stretch.enrollingId)}
+                        onClick={() =>
+                          void enrollOption(session.sessionId, session.name)
+                        }
+                      >
+                        <span className={styles.optionMain}>
+                          <span className={styles.optionTitle}>{session.name}</span>
+                          <span className={styles.optionMeta}>
+                            {[session.instructor, session.department, session.courseName]
+                              .filter(Boolean)
+                              .join(" · ") || "Open session"}
+                          </span>
+                        </span>
+                        <span className={styles.optionAside}>
+                          {stretch.enrollingId === session.sessionId
+                            ? "Enrolling…"
+                            : session.seatsLabel ?? (session.isPeStretch ? "Default" : "Enroll")}
+                        </span>
+                      </button>
+                    </li>
                   ))}
-                </ol>
-                <div className={styles.actions}>
-                  <a
-                    className={styles.btnPrimary}
-                    href={RTI_SCHEDULER_URL}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Open RTI Scheduler
-                  </a>
-                  <button
-                    type="button"
-                    className={styles.btnGhost}
-                    onClick={() => markPicked(PE_STRETCH_NAME, false)}
-                  >
-                    Mark PE Stretch
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.btnGhost}
-                    onClick={() => {
-                      const name = window.prompt("Session name you picked?");
-                      if (name?.trim()) markPicked(name.trim(), false);
-                    }}
-                  >
-                    Mark other pick
-                  </button>
-                </div>
+                  {stretch.sessions.length === 0 ? (
+                    <li className={styles.empty}>No open stretch sessions yet.</li>
+                  ) : null}
+                </ul>
               </div>
             )}
           </section>

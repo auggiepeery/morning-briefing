@@ -70,8 +70,53 @@ export type CalendarEventsResponse = {
 
 export type StretchPick = {
   dateKey: string;
+  sessionId?: string;
   sessionName: string;
   autoSelected: boolean;
   markedAt: string;
   confirmedOnRti: boolean;
+  mocked?: boolean;
+  source?: DataSource;
+};
+
+export type StretchSessionOption = {
+  sessionId: string;
+  name: string;
+  instructor: string | null;
+  department: string | null;
+  courseName: string | null;
+  seatsLabel: string | null;
+  isPeStretch: boolean;
+};
+
+export type StretchSessionsResponse = {
+  source: DataSource;
+  timezone: "America/Denver";
+  asOf: string;
+  credentialMode: "email_keys" | "session_cookie" | "none";
+  sessions: StretchSessionOption[];
+  selected: StretchSessionOption | null;
+  selfEnrolled?: boolean;
+  autoEnrolled?: boolean;
+  note?: string;
+  error?: string;
+  loginUrl?: string;
+  isStretchMorning?: boolean;
+  deadlinePassed?: boolean;
+  deadlineHour?: number;
+  dateKey?: string;
+};
+
+export type StretchEnrollResponse = {
+  source: DataSource;
+  timezone: "America/Denver";
+  asOf: string;
+  ok: boolean;
+  mocked: boolean;
+  sessionId: string;
+  sessionName: string;
+  autoSelected: boolean;
+  note?: string;
+  error?: string;
+  loginUrl?: string;
 };
