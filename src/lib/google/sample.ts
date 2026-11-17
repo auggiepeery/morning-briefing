@@ -50,4 +50,4 @@ export function sampleCalendarEvents(): CalendarEvent[] {
 }
 
 export const SAMPLE_CALENDAR_NOTE =
-  "Sample calendar — set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REFRESH_TOKEN for live events.";
+  "Sample calendar — live Google Calendar sync is not shipped in this public build.";
