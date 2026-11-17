@@ -14,6 +14,13 @@
   transition: background 0.8s ease;
 }
 
+.skyWash {
+  position: absolute;
+  inset: 0;
+  background: var(--sky-wash, none);
+  pointer-events: none;
+}
+
 .skyGlow {
   position: absolute;
   inset: 0;
@@ -23,10 +30,10 @@
 
 .orb {
   position: absolute;
-  width: min(48vw, 22rem);
-  height: min(48vw, 22rem);
-  right: 8%;
-  top: 12%;
+  width: min(42vw, 20rem);
+  height: min(42vw, 20rem);
+  right: 10%;
+  top: 14%;
   border-radius: 50%;
   background: var(--orb-fill);
   box-shadow: var(--orb-glow);
@@ -34,13 +41,24 @@
   animation: orbRise 1.6s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+.cloudFar {
+  position: absolute;
+  inset: 4% -20% auto -20%;
+  height: 36%;
+  background: var(--cloud-far, none);
+  opacity: var(--cloud-far-opacity, 0);
+  filter: blur(28px);
+  animation: cloudDrift 28s ease-in-out infinite alternate-reverse;
+  pointer-events: none;
+}
+
 .cloudBank {
   position: absolute;
-  inset: 8% -15% auto -15%;
-  height: 42%;
+  inset: 10% -12% auto -12%;
+  height: 44%;
   background: var(--cloud-layers);
   opacity: var(--cloud-opacity, 0);
-  filter: blur(18px);
+  filter: blur(7px);
   animation: cloudDrift 22s ease-in-out infinite alternate;
   pointer-events: none;
 }
@@ -56,10 +74,19 @@
   mix-blend-mode: soft-light;
 }
 
+.horizon {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 38%;
+  background: var(--horizon-fill, none);
+  opacity: var(--horizon-opacity, 0.9);
+  pointer-events: none;
+}
+
 .haze {
   position: absolute;
-  inset: auto -10% -20% -10%;
-  height: 55%;
+  inset: auto -10% -18% -10%;
+  height: 48%;
   background: var(--haze-fill);
   animation: hazeDrift 18s ease-in-out infinite alternate;
 }
@@ -67,142 +94,230 @@
 .grain {
   position: absolute;
   inset: 0;
-  opacity: 0.18;
+  opacity: 0.1;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
   mix-blend-mode: soft-light;
   pointer-events: none;
 }
 
+.readability {
+  position: absolute;
+  inset: 0;
+  background: var(--readability-scrim);
+  pointer-events: none;
+}
+
 /* Default / clear day — Firstlight dawn */
 .condClear {
-  --sky-base: linear-gradient(165deg, #1a2740 0%, #3d536e 28%, #c9a07a 62%, #f3e4c8 100%);
+  --sky-base: linear-gradient(180deg, #162338 0%, #3a516c 34%, #c9a07a 68%, #f2e2c4 100%);
+  --sky-wash: linear-gradient(105deg, rgba(110, 150, 175, 0.22) 0%, transparent 48%);
   --sky-glow:
-    radial-gradient(120% 80% at 70% -10%, #ffd29a 0%, transparent 55%),
-    radial-gradient(90% 70% at 10% 20%, #9ec9d8 0%, transparent 50%);
-  --orb-fill: radial-gradient(circle at 40% 40%, #fff4d4 0%, #f0b35a 45%, #e07a2f 100%);
-  --orb-glow: 0 0 80px 20px rgba(240, 179, 90, 0.35);
+    radial-gradient(95% 70% at 74% -8%, #ffd29a 0%, transparent 52%),
+    radial-gradient(70% 55% at 12% 18%, #8ebfd2 0%, transparent 48%);
+  --orb-fill: radial-gradient(circle at 38% 38%, #fff6dc 0%, #f0b35a 48%, #d96a24 100%);
+  --orb-glow: 0 0 72px 18px rgba(240, 179, 90, 0.32);
   --orb-opacity: 1;
   --cloud-opacity: 0;
+  --cloud-far-opacity: 0;
   --precip-opacity: 0;
-  --haze-fill: linear-gradient(to top, rgba(243, 228, 200, 0.85), transparent);
+  --horizon-fill: linear-gradient(to top, rgba(28, 36, 48, 0.28), transparent 70%);
+  --horizon-opacity: 0.55;
+  --haze-fill: linear-gradient(to top, rgba(242, 226, 196, 0.88), transparent);
+  --readability-scrim: linear-gradient(
+    to top,
+    rgba(242, 226, 196, 0.72) 0%,
+    rgba(242, 226, 196, 0.28) 28%,
+    transparent 58%
+  );
   --brand-color: #fff8ec;
-  --headline-color: #1c2430;
-  --headline-date: #2f3b4d;
-  --lede-color: #2a3548;
-  --meta-color: #4a5a70;
+  --headline-color: #15202c;
+  --headline-date: #2a3648;
+  --lede-color: #243142;
+  --weather-temp: #15202c;
+  --weather-detail: #33465c;
 }
 
 .condPartlyCloudy {
-  --sky-base: linear-gradient(165deg, #2a3d58 0%, #5a728c 32%, #b89a7a 68%, #ebe0cb 100%);
+  --sky-base: linear-gradient(180deg, #1f324c 0%, #4d6784 36%, #b89774 70%, #ebe1cb 100%);
+  --sky-wash: linear-gradient(115deg, rgba(140, 175, 198, 0.2) 0%, transparent 50%);
   --sky-glow:
-    radial-gradient(100% 70% at 72% 0%, #ffc988 0%, transparent 50%),
-    radial-gradient(80% 60% at 15% 30%, #a8c4d4 0%, transparent 55%);
+    radial-gradient(90% 65% at 72% 0%, #ffc988 0%, transparent 48%),
+    radial-gradient(65% 50% at 14% 26%, #9fc0d2 0%, transparent 52%);
   --orb-fill: radial-gradient(circle at 40% 40%, #fff1d0 0%, #e8a84a 50%, #d06a28 100%);
-  --orb-glow: 0 0 60px 16px rgba(232, 168, 74, 0.28);
-  --orb-opacity: 0.92;
+  --orb-glow: 0 0 56px 14px rgba(232, 168, 74, 0.26);
+  --orb-opacity: 0.9;
+  --cloud-far:
+    radial-gradient(ellipse 48% 60% at 18% 50%, rgba(255, 255, 255, 0.35) 0%, transparent 70%),
+    radial-gradient(ellipse 42% 55% at 78% 42%, rgba(220, 230, 240, 0.3) 0%, transparent 72%);
+  --cloud-far-opacity: 0.7;
   --cloud-layers:
-    radial-gradient(ellipse 40% 55% at 20% 55%, rgba(255, 255, 255, 0.55) 0%, transparent 70%),
-    radial-gradient(ellipse 50% 60% at 55% 40%, rgba(230, 236, 242, 0.5) 0%, transparent 72%),
-    radial-gradient(ellipse 35% 50% at 82% 60%, rgba(255, 255, 255, 0.4) 0%, transparent 68%);
-  --cloud-opacity: 0.85;
+    radial-gradient(ellipse 38% 52% at 22% 58%, rgba(255, 255, 255, 0.62) 0%, transparent 70%),
+    radial-gradient(ellipse 46% 58% at 56% 38%, rgba(232, 238, 244, 0.55) 0%, transparent 72%),
+    radial-gradient(ellipse 32% 48% at 84% 62%, rgba(255, 255, 255, 0.42) 0%, transparent 68%);
+  --cloud-opacity: 0.88;
   --precip-opacity: 0;
-  --haze-fill: linear-gradient(to top, rgba(235, 224, 203, 0.9), transparent);
+  --horizon-fill: linear-gradient(to top, rgba(28, 36, 48, 0.24), transparent 72%);
+  --horizon-opacity: 0.5;
+  --haze-fill: linear-gradient(to top, rgba(235, 225, 203, 0.9), transparent);
+  --readability-scrim: linear-gradient(
+    to top,
+    rgba(235, 225, 203, 0.74) 0%,
+    rgba(235, 225, 203, 0.3) 30%,
+    transparent 58%
+  );
   --brand-color: #fff8ec;
-  --headline-color: #1c2430;
-  --headline-date: #2f3b4d;
-  --lede-color: #2a3548;
-  --meta-color: #4a5a70;
+  --headline-color: #15202c;
+  --headline-date: #2a3648;
+  --lede-color: #243142;
+  --weather-temp: #15202c;
+  --weather-detail: #33465c;
 }
 
 .condOvercast {
-  --sky-base: linear-gradient(170deg, #3a4758 0%, #6b7a8c 40%, #9aa6b4 75%, #d2d6db 100%);
-  --sky-glow: radial-gradient(90% 60% at 50% 0%, rgba(180, 190, 205, 0.45) 0%, transparent 60%);
-  --orb-fill: radial-gradient(circle at 40% 40%, #e8ecf0 0%, #b8c2ce 55%, #8a96a4 100%);
-  --orb-glow: 0 0 50px 12px rgba(160, 170, 185, 0.25);
-  --orb-opacity: 0.35;
+  --sky-base: linear-gradient(180deg, #1c2a3a 0%, #3e5368 32%, #6d8298 64%, #b7c3d0 100%);
+  --sky-wash: linear-gradient(180deg, rgba(12, 20, 30, 0.35) 0%, transparent 46%);
+  --sky-glow: radial-gradient(70% 48% at 62% 6%, rgba(224, 232, 242, 0.28) 0%, transparent 58%);
+  --orb-fill: transparent;
+  --orb-glow: none;
+  --orb-opacity: 0;
+  --cloud-far:
+    radial-gradient(ellipse 72% 48% at 28% 36%, rgba(148, 164, 182, 0.62) 0%, transparent 72%),
+    radial-gradient(ellipse 58% 44% at 78% 26%, rgba(128, 146, 166, 0.55) 0%, transparent 74%);
+  --cloud-far-opacity: 0.9;
   --cloud-layers:
-    radial-gradient(ellipse 55% 70% at 25% 45%, rgba(220, 226, 232, 0.7) 0%, transparent 70%),
-    radial-gradient(ellipse 60% 65% at 70% 35%, rgba(200, 208, 218, 0.65) 0%, transparent 72%),
-    radial-gradient(ellipse 45% 55% at 48% 70%, rgba(230, 234, 238, 0.55) 0%, transparent 68%);
+    radial-gradient(ellipse 52% 46% at 18% 44%, rgba(245, 248, 252, 0.9) 0%, transparent 72%),
+    radial-gradient(ellipse 58% 50% at 62% 30%, rgba(226, 233, 242, 0.82) 0%, transparent 74%),
+    radial-gradient(ellipse 44% 40% at 88% 52%, rgba(250, 252, 255, 0.7) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 36% at 42% 68%, rgba(236, 241, 246, 0.55) 0%, transparent 70%);
   --cloud-opacity: 1;
   --precip-opacity: 0;
-  --haze-fill: linear-gradient(to top, rgba(210, 214, 219, 0.92), transparent);
-  --brand-color: #f4f6f8;
-  --headline-color: #1a222c;
-  --headline-date: #2c3644;
-  --lede-color: #313b4a;
-  --meta-color: #4a5566;
+  --horizon-fill: linear-gradient(to top, rgba(16, 24, 34, 0.5), transparent 78%);
+  --horizon-opacity: 0.9;
+  --haze-fill: linear-gradient(to top, rgba(186, 196, 208, 0.95), transparent);
+  --readability-scrim: linear-gradient(
+    to top,
+    rgba(206, 214, 224, 0.92) 0%,
+    rgba(206, 214, 224, 0.48) 30%,
+    transparent 58%
+  );
+  --brand-color: #0d141c;
+  --headline-color: #0d141c;
+  --headline-date: #243040;
+  --lede-color: #1e2a38;
+  --weather-temp: #0d141c;
+  --weather-detail: #2a3848;
 }
 
 .condClearNight {
-  --sky-base: linear-gradient(165deg, #060a14 0%, #121c34 45%, #1e2a48 100%);
+  --sky-base: linear-gradient(180deg, #050910 0%, #101a30 48%, #1a2742 100%);
+  --sky-wash: radial-gradient(70% 50% at 70% 12%, rgba(170, 185, 230, 0.14) 0%, transparent 55%);
   --sky-glow:
-    radial-gradient(60% 50% at 75% 18%, rgba(200, 210, 255, 0.22) 0%, transparent 55%),
+    radial-gradient(55% 45% at 76% 16%, rgba(200, 210, 255, 0.2) 0%, transparent 55%),
     radial-gradient(2px 2px at 18% 22%, #fff 50%, transparent 51%),
     radial-gradient(1.5px 1.5px at 42% 14%, #fff 50%, transparent 51%),
     radial-gradient(1.5px 1.5px at 62% 28%, rgba(255, 255, 255, 0.85) 50%, transparent 51%),
     radial-gradient(1px 1px at 88% 12%, #fff 50%, transparent 51%),
     radial-gradient(1.5px 1.5px at 30% 38%, rgba(255, 255, 255, 0.7) 50%, transparent 51%);
   --orb-fill: radial-gradient(circle at 35% 35%, #f4f0e4 0%, #d8d2c0 40%, #9aa0b0 100%);
-  --orb-glow: 0 0 60px 14px rgba(200, 210, 240, 0.2);
-  --orb-opacity: 0.9;
+  --orb-glow: 0 0 52px 12px rgba(200, 210, 240, 0.16);
+  --orb-opacity: 0.88;
   --cloud-opacity: 0;
+  --cloud-far-opacity: 0;
   --precip-opacity: 0;
-  --haze-fill: linear-gradient(to top, rgba(10, 14, 28, 0.9), transparent);
+  --horizon-fill: linear-gradient(to top, rgba(0, 0, 0, 0.45), transparent 70%);
+  --horizon-opacity: 0.8;
+  --haze-fill: linear-gradient(to top, rgba(8, 12, 24, 0.92), transparent);
+  --readability-scrim: linear-gradient(
+    to top,
+    rgba(6, 10, 20, 0.78) 0%,
+    rgba(6, 10, 20, 0.35) 34%,
+    transparent 62%
+  );
   --brand-color: #f2efe6;
-  --headline-color: #e8e4d8;
-  --headline-date: #c4c0b4;
-  --lede-color: #b0b8c8;
-  --meta-color: #8a94a8;
+  --headline-color: #ece8dc;
+  --headline-date: #c2beb2;
+  --lede-color: #b4bcc8;
+  --weather-temp: #f2efe6;
+  --weather-detail: #a8b2c2;
 }
 
 .condCloudyNight {
-  --sky-base: linear-gradient(165deg, #0a0e18 0%, #1a2438 50%, #2a3548 100%);
-  --sky-glow: radial-gradient(70% 50% at 60% 10%, rgba(120, 140, 180, 0.2) 0%, transparent 60%);
+  --sky-base: linear-gradient(180deg, #070b14 0%, #161f32 52%, #243044 100%);
+  --sky-wash: linear-gradient(180deg, rgba(0, 0, 0, 0.25) 0%, transparent 40%);
+  --sky-glow: radial-gradient(65% 45% at 60% 10%, rgba(120, 140, 180, 0.18) 0%, transparent 58%);
   --orb-fill: radial-gradient(circle at 40% 40%, #d8dce8 0%, #8890a0 60%, #505868 100%);
-  --orb-glow: 0 0 40px 10px rgba(140, 150, 180, 0.15);
-  --orb-opacity: 0.25;
+  --orb-glow: 0 0 36px 8px rgba(140, 150, 180, 0.12);
+  --orb-opacity: 0.2;
+  --cloud-far:
+    radial-gradient(ellipse 55% 50% at 25% 35%, rgba(55, 65, 85, 0.55) 0%, transparent 70%);
+  --cloud-far-opacity: 0.8;
   --cloud-layers:
-    radial-gradient(ellipse 50% 60% at 30% 40%, rgba(70, 80, 100, 0.7) 0%, transparent 70%),
-    radial-gradient(ellipse 55% 55% at 75% 50%, rgba(55, 65, 85, 0.65) 0%, transparent 72%);
-  --cloud-opacity: 0.9;
+    radial-gradient(ellipse 50% 58% at 30% 42%, rgba(70, 80, 100, 0.72) 0%, transparent 70%),
+    radial-gradient(ellipse 55% 52% at 75% 48%, rgba(55, 65, 85, 0.68) 0%, transparent 72%);
+  --cloud-opacity: 0.92;
   --precip-opacity: 0;
-  --haze-fill: linear-gradient(to top, rgba(14, 18, 30, 0.92), transparent);
-  --brand-color: #eae6dc;
-  --headline-color: #dde2ea;
-  --headline-date: #aeb6c4;
+  --horizon-fill: linear-gradient(to top, rgba(0, 0, 0, 0.5), transparent 72%);
+  --horizon-opacity: 0.85;
+  --haze-fill: linear-gradient(to top, rgba(12, 16, 28, 0.94), transparent);
+  --readability-scrim: linear-gradient(
+    to top,
+    rgba(8, 12, 22, 0.82) 0%,
+    rgba(8, 12, 22, 0.38) 34%,
+    transparent 62%
+  );
+  --brand-color: #ebe7dd;
+  --headline-color: #e4e9f0;
+  --headline-date: #b0b8c6;
   --lede-color: #9aa4b4;
-  --meta-color: #7a8496;
+  --weather-temp: #ebe7dd;
+  --weather-detail: #a0aab8;
 }
 
 .condFog {
-  --sky-base: linear-gradient(170deg, #6a7380 0%, #9aa3ae 45%, #c8cdd4 100%);
-  --sky-glow: radial-gradient(100% 80% at 50% 40%, rgba(240, 242, 245, 0.55) 0%, transparent 70%);
-  --orb-fill: radial-gradient(circle at 40% 40%, #f0f2f4 0%, #c8ced4 60%, transparent 100%);
-  --orb-glow: 0 0 100px 40px rgba(230, 234, 238, 0.4);
-  --orb-opacity: 0.4;
+  --sky-base: linear-gradient(180deg, #5a6470 0%, #8e97a2 42%, #c4c9d0 100%);
+  --sky-wash: radial-gradient(90% 70% at 50% 45%, rgba(245, 247, 250, 0.45) 0%, transparent 68%);
+  --sky-glow: radial-gradient(100% 80% at 50% 40%, rgba(240, 242, 245, 0.5) 0%, transparent 70%);
+  --orb-fill: radial-gradient(circle at 40% 40%, #f5f7f9 0%, #cdd3da 58%, transparent 100%);
+  --orb-glow: 0 0 90px 36px rgba(230, 234, 238, 0.35);
+  --orb-opacity: 0.35;
+  --cloud-far:
+    radial-gradient(ellipse 90% 45% at 45% 58%, rgba(255, 255, 255, 0.4) 0%, transparent 70%);
+  --cloud-far-opacity: 0.9;
   --cloud-layers:
-    radial-gradient(ellipse 80% 50% at 40% 55%, rgba(255, 255, 255, 0.55) 0%, transparent 70%),
-    radial-gradient(ellipse 70% 45% at 70% 65%, rgba(236, 240, 244, 0.5) 0%, transparent 72%);
+    radial-gradient(ellipse 80% 48% at 40% 55%, rgba(255, 255, 255, 0.58) 0%, transparent 70%),
+    radial-gradient(ellipse 70% 42% at 70% 65%, rgba(236, 240, 244, 0.52) 0%, transparent 72%);
   --cloud-opacity: 1;
   --precip-opacity: 0;
+  --horizon-fill: linear-gradient(to top, rgba(90, 100, 112, 0.35), transparent 70%);
+  --horizon-opacity: 0.6;
   --haze-fill: linear-gradient(to top, rgba(210, 214, 220, 0.95), transparent);
-  --brand-color: #f7f8fa;
-  --headline-color: #222830;
-  --headline-date: #3a424e;
-  --lede-color: #3e4652;
-  --meta-color: #5a6470;
+  --readability-scrim: linear-gradient(
+    to top,
+    rgba(220, 224, 230, 0.82) 0%,
+    rgba(220, 224, 230, 0.36) 32%,
+    transparent 58%
+  );
+  --brand-color: #161c24;
+  --headline-color: #161c24;
+  --headline-date: #323a46;
+  --lede-color: #3a424e;
+  --weather-temp: #161c24;
+  --weather-detail: #4a5460;
 }
 
 .condRain {
-  --sky-base: linear-gradient(170deg, #1a2838 0%, #3a5068 40%, #6a8498 78%, #a8b8c4 100%);
-  --sky-glow: radial-gradient(80% 50% at 40% 0%, rgba(120, 150, 180, 0.35) 0%, transparent 55%);
+  --sky-base: linear-gradient(180deg, #142232 0%, #335068 42%, #628198 78%, #a0b2c0 100%);
+  --sky-wash: linear-gradient(180deg, rgba(10, 18, 28, 0.3) 0%, transparent 45%);
+  --sky-glow: radial-gradient(75% 48% at 40% 0%, rgba(120, 150, 180, 0.32) 0%, transparent 55%);
   --orb-fill: radial-gradient(circle at 40% 40%, #c8d4e0 0%, #7a90a4 55%, transparent 100%);
-  --orb-glow: 0 0 40px 8px rgba(120, 140, 160, 0.2);
-  --orb-opacity: 0.2;
+  --orb-glow: 0 0 36px 6px rgba(120, 140, 160, 0.16);
+  --orb-opacity: 0.16;
+  --cloud-far:
+    radial-gradient(ellipse 55% 48% at 20% 28%, rgba(70, 90, 110, 0.5) 0%, transparent 70%);
+  --cloud-far-opacity: 0.85;
   --cloud-layers:
-    radial-gradient(ellipse 60% 55% at 25% 30%, rgba(90, 110, 130, 0.65) 0%, transparent 70%),
-    radial-gradient(ellipse 55% 50% at 70% 25%, rgba(70, 90, 110, 0.6) 0%, transparent 72%);
+    radial-gradient(ellipse 58% 52% at 25% 30%, rgba(90, 110, 130, 0.68) 0%, transparent 70%),
+    radial-gradient(ellipse 52% 48% at 70% 24%, rgba(70, 90, 110, 0.62) 0%, transparent 72%);
   --cloud-opacity: 0.95;
   --precip-image: repeating-linear-gradient(
     105deg,
@@ -213,23 +328,36 @@
   --precip-size: 22px 56px;
   --precip-speed: 0.85s;
   --precip-opacity: 0.55;
+  --horizon-fill: linear-gradient(to top, rgba(16, 28, 40, 0.4), transparent 72%);
+  --horizon-opacity: 0.75;
   --haze-fill: linear-gradient(to top, rgba(160, 180, 196, 0.88), transparent);
-  --brand-color: #f0f4f8;
-  --headline-color: #15202c;
-  --headline-date: #2a3848;
+  --readability-scrim: linear-gradient(
+    to top,
+    rgba(170, 186, 200, 0.78) 0%,
+    rgba(170, 186, 200, 0.34) 32%,
+    transparent 58%
+  );
+  --brand-color: #101820;
+  --headline-color: #101820;
+  --headline-date: #273646;
   --lede-color: #2c3a4a;
-  --meta-color: #445566;
+  --weather-temp: #101820;
+  --weather-detail: #3a4c5c;
 }
 
 .condSnow {
-  --sky-base: linear-gradient(170deg, #2a3848 0%, #5a6e82 38%, #a8b8c8 72%, #e8eef4 100%);
-  --sky-glow: radial-gradient(90% 60% at 55% 5%, rgba(220, 230, 245, 0.5) 0%, transparent 55%);
+  --sky-base: linear-gradient(180deg, #223244 0%, #51667c 40%, #a6b8c8 74%, #e8eef4 100%);
+  --sky-wash: radial-gradient(80% 55% at 55% 8%, rgba(230, 238, 248, 0.4) 0%, transparent 55%);
+  --sky-glow: radial-gradient(90% 60% at 55% 5%, rgba(220, 230, 245, 0.48) 0%, transparent 55%);
   --orb-fill: radial-gradient(circle at 40% 40%, #ffffff 0%, #d0dae8 55%, transparent 100%);
-  --orb-glow: 0 0 50px 16px rgba(220, 230, 245, 0.35);
-  --orb-opacity: 0.3;
+  --orb-glow: 0 0 46px 14px rgba(220, 230, 245, 0.3);
+  --orb-opacity: 0.28;
+  --cloud-far:
+    radial-gradient(ellipse 50% 50% at 18% 32%, rgba(255, 255, 255, 0.4) 0%, transparent 70%);
+  --cloud-far-opacity: 0.75;
   --cloud-layers:
-    radial-gradient(ellipse 50% 55% at 20% 35%, rgba(255, 255, 255, 0.55) 0%, transparent 70%),
-    radial-gradient(ellipse 55% 50% at 65% 28%, rgba(230, 238, 248, 0.5) 0%, transparent 72%);
+    radial-gradient(ellipse 48% 52% at 20% 35%, rgba(255, 255, 255, 0.58) 0%, transparent 70%),
+    radial-gradient(ellipse 52% 48% at 65% 28%, rgba(230, 238, 248, 0.52) 0%, transparent 72%);
   --cloud-opacity: 0.9;
   --precip-image:
     radial-gradient(2px 2px at 20% 30%, #fff 50%, transparent 51%),
@@ -241,25 +369,38 @@
   --precip-size: 120px 160px;
   --precip-speed: 4.5s;
   --precip-opacity: 0.85;
+  --horizon-fill: linear-gradient(to top, rgba(30, 42, 56, 0.28), transparent 70%);
+  --horizon-opacity: 0.55;
   --haze-fill: linear-gradient(to top, rgba(232, 238, 244, 0.92), transparent);
-  --brand-color: #ffffff;
-  --headline-color: #1a2430;
-  --headline-date: #2e3a48;
+  --readability-scrim: linear-gradient(
+    to top,
+    rgba(232, 238, 244, 0.82) 0%,
+    rgba(232, 238, 244, 0.36) 32%,
+    transparent 58%
+  );
+  --brand-color: #121a24;
+  --headline-color: #121a24;
+  --headline-date: #2a3646;
   --lede-color: #334050;
-  --meta-color: #4a5a6c;
+  --weather-temp: #121a24;
+  --weather-detail: #3e4e60;
 }
 
 .condStorm {
-  --sky-base: linear-gradient(170deg, #0e1420 0%, #1e2a3c 35%, #3a4a5c 70%, #5a6a7a 100%);
+  --sky-base: linear-gradient(180deg, #0a1018 0%, #1a2738 38%, #354658 72%, #566676 100%);
+  --sky-wash: linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, transparent 48%);
   --sky-glow:
-    radial-gradient(50% 40% at 62% 18%, rgba(200, 210, 255, 0.18) 0%, transparent 55%),
-    radial-gradient(40% 30% at 30% 25%, rgba(255, 255, 240, 0.08) 0%, transparent 60%);
+    radial-gradient(48% 36% at 62% 16%, rgba(200, 210, 255, 0.16) 0%, transparent 55%),
+    radial-gradient(36% 28% at 30% 24%, rgba(255, 255, 240, 0.07) 0%, transparent 60%);
   --orb-fill: radial-gradient(circle at 40% 40%, #e8ecf4 0%, #6a7890 50%, transparent 100%);
-  --orb-glow: 0 0 30px 6px rgba(180, 200, 255, 0.15);
-  --orb-opacity: 0.15;
+  --orb-glow: 0 0 28px 5px rgba(180, 200, 255, 0.12);
+  --orb-opacity: 0.12;
+  --cloud-far:
+    radial-gradient(ellipse 60% 48% at 30% 20%, rgba(30, 40, 55, 0.7) 0%, transparent 70%);
+  --cloud-far-opacity: 0.9;
   --cloud-layers:
-    radial-gradient(ellipse 65% 55% at 35% 22%, rgba(40, 50, 70, 0.85) 0%, transparent 70%),
-    radial-gradient(ellipse 55% 50% at 80% 30%, rgba(30, 40, 55, 0.8) 0%, transparent 72%);
+    radial-gradient(ellipse 65% 52% at 35% 22%, rgba(40, 50, 70, 0.88) 0%, transparent 70%),
+    radial-gradient(ellipse 55% 48% at 80% 30%, rgba(30, 40, 55, 0.82) 0%, transparent 72%);
   --cloud-opacity: 1;
   --precip-image: repeating-linear-gradient(
     108deg,
@@ -270,12 +411,21 @@
   --precip-size: 18px 52px;
   --precip-speed: 0.55s;
   --precip-opacity: 0.65;
+  --horizon-fill: linear-gradient(to top, rgba(0, 0, 0, 0.55), transparent 72%);
+  --horizon-opacity: 0.9;
   --haze-fill: linear-gradient(to top, rgba(50, 60, 75, 0.9), transparent);
+  --readability-scrim: linear-gradient(
+    to top,
+    rgba(14, 20, 30, 0.82) 0%,
+    rgba(14, 20, 30, 0.4) 34%,
+    transparent 62%
+  );
   --brand-color: #f2f0e8;
-  --headline-color: #e6eaf0;
+  --headline-color: #e8ecf2;
   --headline-date: #b8c0cc;
   --lede-color: #a0aab8;
-  --meta-color: #8892a0;
+  --weather-temp: #f2f0e8;
+  --weather-detail: #a8b2c0;
 }
 
 .hero {
@@ -284,63 +434,80 @@
   flex-direction: column;
   justify-content: flex-end;
   padding: clamp(1.5rem, 4vw, 3.5rem);
-  padding-bottom: clamp(2.5rem, 8vh, 5rem);
-  max-width: 48rem;
+  padding-bottom: clamp(2.75rem, 9vh, 5.5rem);
   animation: riseIn 1s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
+}
+
+.heroCopy {
+  max-width: 34rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .brand {
   font-family: var(--font-display);
-  font-size: clamp(3rem, 10vw, 5.5rem);
+  font-size: clamp(3.4rem, 11vw, 6rem);
   font-weight: 500;
-  letter-spacing: -0.03em;
-  line-height: 0.95;
+  letter-spacing: -0.035em;
+  line-height: 0.92;
   color: var(--brand-color, #fff8ec);
-  text-shadow: 0 2px 24px rgba(26, 39, 64, 0.35);
-  margin-bottom: 1rem;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.08), 0 10px 36px rgba(16, 24, 32, 0.22);
+  margin-bottom: 1.15rem;
 }
 
 .headline {
-  font-family: var(--font-display);
-  font-size: clamp(1.6rem, 4.2vw, 2.35rem);
-  font-weight: 500;
-  line-height: 1.2;
+  font-family: var(--font-body);
+  font-size: clamp(1.15rem, 2.6vw, 1.45rem);
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
   color: var(--headline-color, #1c2430);
-  max-width: 18ch;
+  max-width: 28ch;
 }
 
 .headlineDate {
   display: inline;
-  font-weight: 400;
+  font-weight: 500;
   color: var(--headline-date, #2f3b4d);
 }
 
-.lede {
-  margin-top: 1rem;
-  font-family: var(--font-body);
-  font-size: 1.05rem;
-  line-height: 1.55;
-  color: var(--lede-color, #2a3548);
-  max-width: 32ch;
+.weatherLine {
+  margin-top: 1.35rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.55rem 0.85rem;
+  color: var(--weather-detail, #33465c);
 }
 
-.weatherLine {
+.weatherTemp {
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 6vw, 3.4rem);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+  font-variant-numeric: tabular-nums;
+  color: var(--weather-temp, #15202c);
+}
+
+.weatherDetail {
+  font-family: var(--font-body);
+  font-size: clamp(0.98rem, 2vw, 1.12rem);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+  color: var(--weather-detail, #33465c);
+}
+
+.lede {
   margin-top: 1.1rem;
   font-family: var(--font-body);
   font-size: 1rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  color: var(--headline-color, #1c2430);
+  line-height: 1.5;
+  color: var(--lede-color, #2a3548);
+  max-width: 34ch;
   opacity: 0.92;
-}
-
-.tz {
-  margin-top: 1rem;
-  font-family: var(--font-body);
-  font-size: 0.8rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--meta-color, #4a5a70);
 }
 
 .brief {
@@ -640,6 +807,7 @@ a.rowTitle:hover {
 @media (prefers-reduced-motion: reduce) {
   .orb,
   .haze,
+  .cloudFar,
   .cloudBank,
   .precip,
   .hero,

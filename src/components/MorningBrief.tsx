@@ -14,6 +14,7 @@ import {
 import {
   PE_STRETCH_NAME,
   RTI_SCHEDULER_URL,
+  STRETCH_DEADLINE_HOUR,
   STRETCH_STEPS,
   buildStretchUiState,
   clearStretchPick,
@@ -102,37 +103,51 @@ export function MorningBrief({ initialWeather }: Props) {
   }
 
   const conditionClass = CONDITION_CLASS[weather.condition] ?? styles.condClear;
-  const weatherLine =
-    weather.line ??
-    (weather.source === "fallback" ? "Midway · weather offline" : null);
+  const weatherOffline = weather.source === "fallback";
+  const tempLabel =
+    typeof weather.temperatureF === "number"
+      ? `${Math.round(weather.temperatureF)}°`
+      : null;
+  const weatherDetail = weatherOffline
+    ? "Midway · weather offline"
+    : `${weather.summary} in ${weather.place}`;
 
   return (
     <div className={`${styles.shell} ${conditionClass}`}>
       <div className={styles.atmosphere} aria-hidden="true">
+        <div className={styles.skyWash} />
         <div className={styles.skyGlow} />
         <div className={styles.orb} />
+        <div className={styles.cloudFar} />
         <div className={styles.cloudBank} />
         <div className={styles.precip} />
+        <div className={styles.horizon} />
         <div className={styles.haze} />
         <div className={styles.grain} />
+        <div className={styles.readability} />
       </div>
 
       <header className={styles.hero}>
-        <p className={styles.brand}>Firstlight</p>
-        <h1 className={styles.headline}>
-          {greeting}.
-          <span className={styles.headlineDate}> {dateLabel}</span>
-        </h1>
-        <p className={styles.lede}>
-          Your morning line — missing work, today’s calendar, and stretch when
-          it counts.
-        </p>
-        {weatherLine ? (
-          <p className={styles.weatherLine} aria-live="polite">
-            {weatherLine}
+        <div className={styles.heroCopy}>
+          <p className={styles.brand}>Firstlight</p>
+          <h1 className={styles.headline}>
+            {greeting}.
+            <span className={styles.headlineDate}> {dateLabel}</span>
+          </h1>
+          <p
+            className={styles.weatherLine}
+            aria-live="polite"
+            title={weather.line ?? undefined}
+          >
+            {tempLabel ? (
+              <span className={styles.weatherTemp}>{tempLabel}</span>
+            ) : null}
+            <span className={styles.weatherDetail}>{weatherDetail}</span>
           </p>
-        ) : null}
-        <p className={styles.tz}>America/Denver</p>
+          <p className={styles.lede}>
+            Missing work, today’s calendar, and stretch on Mon/Wed mornings.
+          </p>
+        </div>
       </header>
 
       <main className={styles.brief}>
@@ -261,12 +276,13 @@ export function MorningBrief({ initialWeather }: Props) {
               <span className={styles.badgeStretch}>Mon / Wed</span>
             </div>
             <p className={styles.note}>
-              Pick on{" "}
+              Choose a session on{" "}
               <a href={RTI_SCHEDULER_URL} target="_blank" rel="noreferrer">
                 rtischeduler.com
-              </a>{" "}
-              before {stretch.deadlineHour}:00 AM Denver. Unpicked → auto PE
-              Stretch.
+              </a>
+              . If nothing is picked by {stretch.deadlineHour}:00 AM, we
+              auto-select PE Stretch here (still confirm on RTI with school
+              SSO).
             </p>
 
             {stretch.pick ? (
@@ -346,8 +362,9 @@ export function MorningBrief({ initialWeather }: Props) {
         ) : (
           <section className={styles.sectionQuiet}>
             <p>
-              Stretch picking shows Monday and Wednesday mornings. Preview anytime
-              with <code>?stretch</code>.
+              Stretch is Mon/Wed only. After {STRETCH_DEADLINE_HOUR}:00 AM with
+              no pick, PE Stretch is auto-selected. Preview anytime with{" "}
+              <code>?stretch</code>.
             </p>
           </section>
         )}

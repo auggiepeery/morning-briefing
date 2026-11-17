@@ -50,7 +50,7 @@ export const STRETCH_STEPS = [
   "Or tap “Choose a Session” in the school email reminder if you have one.",
   "Browse open sessions for today’s stretch / flex period.",
   "Pick your session (or PE Stretch) and confirm enrollment on the site.",
-  "Come back here and tap Mark picked — or we’ll auto-select PE Stretch after 8:00 AM Denver if you haven’t.",
+  "Come back here and tap Mark picked — or we’ll auto-select PE Stretch after 8:00 AM if you haven’t.",
 ];
 
 /**
