@@ -63,4 +63,4 @@ export function sampleCanvasAssignments(): CanvasAssignment[] {
 }
 
 export const SAMPLE_CANVAS_NOTE =
-  "Sample Canvas data — set CANVAS_ACCESS_TOKEN for live missing work. CANVAS_BASE_URL defaults to Wasatch and remains overridable.";
+  "Sample Canvas data — live LMS sync is not shipped in this public build.";

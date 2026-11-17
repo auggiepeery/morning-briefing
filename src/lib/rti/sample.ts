@@ -1,7 +1,7 @@
 import type { StretchSessionOption } from "../types";
 
 export const SAMPLE_STRETCH_NOTE =
-  "Sample stretch options — add school-timeline SSO secrets (SESSION + XSRF from a one-time Mac login) to enroll for real on rtischeduler.com. iPhone alone can’t copy HttpOnly cookies.";
+  "Sample stretch options — live RTI school-timeline enroll is not shipped in this public build.";
 
 export function sampleStretchSessions(): StretchSessionOption[] {
   return [

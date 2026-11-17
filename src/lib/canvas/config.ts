@@ -5,4 +5,4 @@
 export const DEFAULT_CANVAS_BASE_URL = "https://wasatch.instructure.com";
 
 export const DEFAULT_CANVAS_HINT =
-  "CANVAS_BASE_URL defaults to https://wasatch.instructure.com. Override if your LMS host differs. Pair with CANVAS_ACCESS_TOKEN for live missing work.";
+  "Wasatch Canvas is the default host label in sample UI; live LMS sync is not shipped in this public build.";
