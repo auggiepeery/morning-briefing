@@ -677,6 +677,13 @@ a.rowTitle:hover {
   font-family: var(--font-body);
 }
 
+.badgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+}
+
 .stretchResult,
 .stretchFlow {
   display: flex;
@@ -689,15 +696,64 @@ a.rowTitle:hover {
   font-size: 1.35rem;
 }
 
-.steps {
-  margin: 0;
-  padding-left: 1.2rem;
-  font-family: var(--font-body);
-  color: #2f3b4d;
+.optionList {
+  list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
-  line-height: 1.45;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+}
+
+.optionButton {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: baseline;
+  text-align: left;
+  padding: 0.85rem 0;
+  border: 0;
+  border-bottom: 1px solid rgba(28, 36, 48, 0.12);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  animation: riseIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.optionButton:hover:not(:disabled) .optionTitle {
+  color: #8a3d1c;
+}
+
+.optionButton:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.optionMain {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.optionTitle {
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.optionMeta {
+  font-size: 0.88rem;
+  color: #5a6a7e;
+}
+
+.optionAside {
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  color: #6a4a28;
+  font-weight: 600;
 }
 
 .actions {

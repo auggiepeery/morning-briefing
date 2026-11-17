@@ -1,4 +1,4 @@
-import type { StretchPick } from "./types";
+import type { StretchPick, StretchSessionOption, StretchSessionsResponse } from "./types";
 import {
   getDenverParts,
   isStretchDay,
@@ -7,6 +7,7 @@ import {
 } from "./denver";
 
 export const RTI_SCHEDULER_URL = "https://rtischeduler.com";
+export const RTI_LOGIN_URL = "https://www.rtischeduler.com/choose-login";
 export const PE_STRETCH_NAME = "PE Stretch";
 export const STRETCH_DEADLINE_HOUR = 8;
 export const STRETCH_STORAGE_PREFIX = "firstlight-stretch:";
@@ -17,7 +18,13 @@ export type StretchUiState = {
   deadlinePassed: boolean;
   dateKey: string;
   pick: StretchPick | null;
-  steps: string[];
+  sessions: StretchSessionOption[];
+  source: StretchSessionsResponse["source"] | null;
+  credentialMode: StretchSessionsResponse["credentialMode"] | null;
+  note: string | null;
+  loginUrl: string;
+  enrollingId: string | null;
+  error: string | null;
 };
 
 export function storageKeyForDate(dateKey: string): string {
@@ -45,18 +52,9 @@ export function clearStretchPick(dateKey: string): void {
   window.localStorage.removeItem(storageKeyForDate(dateKey));
 }
 
-export const STRETCH_STEPS = [
-  "Open RTI Scheduler and sign in with your school Google or Microsoft account.",
-  "Or tap “Choose a Session” in the school email reminder if you have one.",
-  "Browse open sessions for today’s stretch / flex period.",
-  "Pick your session (or PE Stretch) and confirm enrollment on the site.",
-  "Come back here and tap Mark picked — or we’ll auto-select PE Stretch after 8:00 AM if you haven’t.",
-];
-
 /**
  * Resolve today's stretch pick: honor stored choice; after 8am Mon/Wed
- * Denver with no pick, auto-select PE Stretch locally (RTI still needs
- * school SSO — we cannot enroll remotely without credentials).
+ * Denver with no pick, auto-select PE Stretch (server also attempts RTI enroll).
  */
 export function resolveStretchPick(
   parts: DenverParts = getDenverParts(),
@@ -79,13 +77,13 @@ export function resolveStretchPick(
   return null;
 }
 
-export function buildStretchUiState(
+export function emptyStretchUiState(
   forceShow = false,
   parts: DenverParts = getDenverParts(),
 ): StretchUiState {
   const show = forceShow || isStretchDay(parts);
   const existing = show ? readStretchPick(parts.dateKey) : null;
-  let pick = show ? resolveStretchPick(parts, existing) : null;
+  const pick = show ? resolveStretchPick(parts, existing) : null;
 
   if (
     pick &&
@@ -101,6 +99,12 @@ export function buildStretchUiState(
     deadlinePassed: stretchDeadlinePassed(parts, STRETCH_DEADLINE_HOUR),
     dateKey: parts.dateKey,
     pick,
-    steps: STRETCH_STEPS,
+    sessions: [],
+    source: null,
+    credentialMode: null,
+    note: null,
+    loginUrl: RTI_LOGIN_URL,
+    enrollingId: null,
+    error: null,
   };
 }
