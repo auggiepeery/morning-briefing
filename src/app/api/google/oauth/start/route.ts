@@ -1,9 +1,21 @@
 import { buildAuthorizeUrl, googleOAuthReady, resolveRedirectUri } from "@/lib/google/oauth";
+import { ownerLiveIntegrationsAllowed } from "@/lib/owner-auth";
 import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 
-
 export async function GET(request: Request) {
+  const allowLive = await ownerLiveIntegrationsAllowed(request);
+  if (!allowLive) {
+    return NextResponse.json(
+      {
+        error: "owner_required",
+        message:
+          "Google OAuth connect is disabled while the app is public-safe.",
+      },
+      { status: 401 },
+    );
+  }
+
   if (!googleOAuthReady()) {
     return NextResponse.json(
       {

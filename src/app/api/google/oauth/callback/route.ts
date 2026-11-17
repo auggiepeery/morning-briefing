@@ -1,5 +1,5 @@
 import { exchangeCodeForTokens, resolveRedirectUri } from "@/lib/google/oauth";
-
+import { ownerLiveIntegrationsAllowed } from "@/lib/owner-auth";
 
 function readCookie(request: Request, name: string): string | null {
   const raw = request.headers.get("cookie") ?? "";
@@ -16,6 +16,13 @@ function readCookie(request: Request, name: string): string | null {
  * operator to store GOOGLE_REFRESH_TOKEN via Cursor app secrets.
  */
 export async function GET(request: Request) {
+  if (!(await ownerLiveIntegrationsAllowed(request))) {
+    return htmlPage(
+      "Sign-in required",
+      `<p>Google OAuth callback is disabled while the app is public-safe.</p><p><a href="/">Back</a></p>`,
+    );
+  }
+
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");

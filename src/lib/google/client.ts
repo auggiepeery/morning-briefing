@@ -58,13 +58,16 @@ async function refreshAccessToken(): Promise<string> {
 
 /**
  * Google Calendar client (server-only). Secrets stay in process.env —
- * never VITE_/NEXT_PUBLIC_.
+ * never VITE_/NEXT_PUBLIC_. Live fetch only when allowLive (signed-in owner).
  */
-export async function fetchTodaysEvents(): Promise<CalendarEventsResponse> {
+export async function fetchTodaysEvents(opts?: {
+  allowLive?: boolean;
+}): Promise<CalendarEventsResponse> {
   const { rangeStart, rangeEnd, asOf } = denverDayWindow(8);
   const configured = oauthConfigured();
+  const allowLive = Boolean(opts?.allowLive);
 
-  if (!configured) {
+  if (!allowLive || !configured) {
     return {
       source: "sample",
       timezone: TIMEZONE,
@@ -72,8 +75,10 @@ export async function fetchTodaysEvents(): Promise<CalendarEventsResponse> {
       rangeStart,
       rangeEnd,
       events: sampleCalendarEvents(),
-      note: SAMPLE_CALENDAR_NOTE,
-      oauthConfigured: false,
+      note: allowLive
+        ? SAMPLE_CALENDAR_NOTE
+        : "Sample calendar — live Google data is disabled while the app is public-safe.",
+      oauthConfigured: configured,
       connected: false,
     };
   }

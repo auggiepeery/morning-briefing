@@ -1,4 +1,5 @@
 import { enrollStretchOption } from "@/lib/rti/client";
+import { ownerLiveIntegrationsAllowed } from "@/lib/owner-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -27,9 +28,11 @@ export async function POST(request: Request) {
     );
   }
 
+  const allowLive = await ownerLiveIntegrationsAllowed(request);
   const result = await enrollStretchOption(sessionId, {
     sessionName: body.sessionName?.trim(),
     autoSelected: Boolean(body.autoSelected),
+    allowLive,
   });
 
   return Response.json(result, { status: result.ok ? 200 : 502 });

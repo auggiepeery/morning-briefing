@@ -65,20 +65,25 @@ async function canvasGet<T>(
  * Base URL defaults to Wasatch Canvas; override with CANVAS_BASE_URL.
  * Live data also needs CANVAS_ACCESS_TOKEN.
  */
-export async function fetchMissingAssignments(): Promise<CanvasAssignmentsResponse> {
+export async function fetchMissingAssignments(opts?: {
+  allowLive?: boolean;
+}): Promise<CanvasAssignmentsResponse> {
   const baseUrl = normalizeBaseUrl(
     process.env.CANVAS_BASE_URL?.trim() || DEFAULT_CANVAS_BASE_URL,
   );
   const token = process.env.CANVAS_ACCESS_TOKEN?.trim() ?? "";
   const asOf = new Date().toISOString();
+  const allowLive = Boolean(opts?.allowLive);
 
-  if (!token) {
+  if (!allowLive || !token) {
     return {
       source: "sample",
       timezone: TIMEZONE,
       asOf,
       assignments: sampleCanvasAssignments(),
-      note: `${SAMPLE_CANVAS_NOTE} Host ready: ${baseUrl}. Waiting on CANVAS_ACCESS_TOKEN.`,
+      note: allowLive
+        ? `${SAMPLE_CANVAS_NOTE} Host ready: ${baseUrl}. Waiting on CANVAS_ACCESS_TOKEN.`
+        : "Sample Canvas work — live to-dos are disabled while the app is public-safe.",
     };
   }
 

@@ -453,21 +453,26 @@ export function findPeStretch(
   return sessions.find((s) => s.isPeStretch) ?? null;
 }
 
-export async function getStretchSessions(): Promise<StretchSessionsResponse> {
+export async function getStretchSessions(opts?: {
+  allowLive?: boolean;
+}): Promise<StretchSessionsResponse> {
   const asOf = new Date().toISOString();
   const config = getRtiConfig();
   const loginUrl = rtiLoginUrl(config);
+  const allowLive = Boolean(opts?.allowLive);
 
-  if (config.mode === "none") {
+  if (!allowLive || config.mode === "none") {
     const sessions = sampleStretchSessions();
     return {
       source: "sample",
       timezone: "America/Denver",
       asOf,
-      credentialMode: "none",
+      credentialMode: allowLive ? config.mode : "none",
       sessions,
       selected: null,
-      note: SAMPLE_STRETCH_NOTE,
+      note: allowLive
+        ? SAMPLE_STRETCH_NOTE
+        : "Sample stretch options — live RTI is disabled while the app is public-safe.",
       loginUrl,
     };
   }
@@ -511,14 +516,19 @@ export async function getStretchSessions(): Promise<StretchSessionsResponse> {
 
 export async function enrollStretchOption(
   sessionId: string,
-  opts?: { sessionName?: string; autoSelected?: boolean },
+  opts?: {
+    sessionName?: string;
+    autoSelected?: boolean;
+    allowLive?: boolean;
+  },
 ): Promise<StretchEnrollResponse> {
   const asOf = new Date().toISOString();
   const config = getRtiConfig();
   const autoSelected = Boolean(opts?.autoSelected);
   const loginUrl = rtiLoginUrl(config);
+  const allowLive = Boolean(opts?.allowLive);
 
-  if (config.mode === "none") {
+  if (!allowLive || config.mode === "none") {
     const samples = sampleStretchSessions();
     const match =
       samples.find((s) => s.sessionId === sessionId) ??
@@ -537,7 +547,9 @@ export async function enrollStretchOption(
       sessionId: match.sessionId,
       sessionName: match.name,
       autoSelected,
-      note: "Mock enrollment — RTI school-timeline secrets are not set. Add SESSION + XSRF (Mac SSO once) to enroll for real.",
+      note: allowLive
+        ? "Mock enrollment — RTI school-timeline secrets are not set. Add SESSION + XSRF (Mac SSO once) to enroll for real."
+        : "Mock enrollment only — live RTI enroll is disabled while the app is public-safe.",
       loginUrl,
     };
   }
