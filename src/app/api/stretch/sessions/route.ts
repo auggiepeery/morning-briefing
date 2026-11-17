@@ -1,9 +1,6 @@
-import {
-  enrollStretchOption,
-  findPeStretch,
-  getStretchSessions,
-} from "@/lib/rti/client";
+import { getStretchSessions } from "@/lib/rti/client";
 import { getRtiConfig, rtiLoginUrl } from "@/lib/rti/config";
+import { ownerLiveIntegrationsAllowed } from "@/lib/owner-auth";
 import { STRETCH_DEADLINE_HOUR } from "@/lib/stretch";
 import {
   getDenverParts,
@@ -14,63 +11,27 @@ import type { StretchSessionsResponse } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+/**
+ * Lists stretch options only. Never auto-enrolls — mutating on GET let any
+ * page or link enroll the owner's school account on a public app.
+ */
+export async function GET(request: Request) {
   const parts = getDenverParts();
-  // Visibility is always on; isStretchMorning is Mon/Wed only (PE auto-enroll gate).
   const isStretchMorning = isStretchDay(parts);
   const deadlinePassed = stretchDeadlinePassed(parts, STRETCH_DEADLINE_HOUR);
+  const allowLive = await ownerLiveIntegrationsAllowed(request);
 
-  const base = await getStretchSessions();
+  const base = await getStretchSessions({ allowLive });
 
-  let response: StretchSessionsResponse = {
+  const response: StretchSessionsResponse = {
     ...base,
     isStretchMorning,
     deadlinePassed,
     deadlineHour: STRETCH_DEADLINE_HOUR,
     dateKey: parts.dateKey,
+    autoEnrolled: false,
+    loginUrl: base.loginUrl || rtiLoginUrl(getRtiConfig()),
   };
-
-  const alreadyPicked = Boolean(response.selfEnrolled || response.selected);
-  if (isStretchMorning && deadlinePassed && !alreadyPicked) {
-    const pe = findPeStretch(response.sessions);
-    if (pe) {
-      const enrolled = await enrollStretchOption(pe.sessionId, {
-        sessionName: pe.name,
-        autoSelected: true,
-      });
-
-      if (enrolled.ok) {
-        response = {
-          ...response,
-          selected: pe,
-          selfEnrolled: !enrolled.mocked,
-          autoEnrolled: true,
-          note: enrolled.note ?? response.note,
-        };
-      } else {
-        response = {
-          ...response,
-          selected: pe,
-          autoEnrolled: true,
-          note:
-            enrolled.note ??
-            "Deadline passed — PE Stretch selected locally, but RTI enrollment failed.",
-          error: enrolled.error,
-        };
-      }
-    } else {
-      response = {
-        ...response,
-        note:
-          (response.note ? `${response.note} ` : "") +
-          "Deadline passed and PE Stretch was not in the open list.",
-      };
-    }
-  }
-
-  if (!response.loginUrl) {
-    response.loginUrl = rtiLoginUrl(getRtiConfig());
-  }
 
   return Response.json(response);
 }

@@ -27,6 +27,8 @@ Next.js App Router + TypeScript. Secrets stay server-side (`process.env`); the b
 
 Without RTI secrets, the UI shows clearly labeled **sample data** and mock enroll.
 
+**Public-safe mode:** Canvas, Calendar, and live RTI stay off (`src/lib/owner-auth.ts`). Visitors get sample data and mock enroll only — owner secrets are never used on open routes. GET `/api/stretch/sessions` never auto-enrolls.
+
 Do not put secrets in `NEXT_PUBLIC_` / client env. Never paste RTI cookie values into chat.
 
 ### One-time Mac setup (school-timeline SESSION)
