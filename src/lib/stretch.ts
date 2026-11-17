@@ -54,7 +54,7 @@ export function clearStretchPick(dateKey: string): void {
 
 /**
  * Resolve today's stretch pick: honor stored choice any day; after 8am Mon/Wed
- * Denver with no pick, auto-select PE Stretch (server also attempts RTI enroll).
+ * Denver with no pick, auto-select PE Stretch locally for the demo UI.
  */
 export function resolveStretchPick(
   parts: DenverParts = getDenverParts(),

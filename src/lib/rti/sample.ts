@@ -1,7 +1,7 @@
 import type { StretchSessionOption } from "../types";
 
 export const SAMPLE_STRETCH_NOTE =
-  "Sample stretch options — live RTI school-timeline enroll is not shipped in this public build.";
+  "Sample stretch options for this public demo.";
 
 export function sampleStretchSessions(): StretchSessionOption[] {
   return [

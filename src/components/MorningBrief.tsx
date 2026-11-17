@@ -4,22 +4,28 @@ import { useEffect, useState } from "react";
 import type {
   CalendarEventsResponse,
   CanvasAssignmentsResponse,
-  StretchEnrollResponse,
-  StretchSessionsResponse,
   WeatherResponse,
 } from "@/lib/types";
 import {
   formatDenverDateLong,
   getDenverParts,
   greetingForHour,
+  denverDayWindow,
+  TIMEZONE,
+  isStretchDay,
+  stretchDeadlinePassed,
 } from "@/lib/denver";
 import {
   RTI_SCHEDULER_URL,
+  STRETCH_DEADLINE_HOUR,
   clearStretchPick,
   emptyStretchUiState,
   writeStretchPick,
   type StretchUiState,
 } from "@/lib/stretch";
+import { sampleCanvasAssignments } from "@/lib/canvas/sample";
+import { sampleCalendarEvents } from "@/lib/google/sample";
+import { SAMPLE_STRETCH_NOTE, sampleStretchSessions } from "@/lib/rti/sample";
 import styles from "./MorningBrief.module.css";
 
 type Props = {
@@ -47,120 +53,76 @@ export function MorningBrief({ initialWeather }: Props) {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
     setNow(new Date());
+    setLoadError(null);
 
-    async function load() {
-      setStretch(emptyStretchUiState());
+    const asOf = new Date().toISOString();
+    const { rangeStart, rangeEnd } = denverDayWindow(8);
+    const partsNow = getDenverParts();
 
-      try {
-        const [cRes, gRes, sRes] = await Promise.all([
-          fetch("/api/canvas/assignments", { cache: "no-store" }),
-          fetch("/api/calendar/events", { cache: "no-store" }),
-          fetch("/api/stretch/sessions", { cache: "no-store" }),
-        ]);
-        if (!cRes.ok || !gRes.ok) throw new Error("Briefing APIs unavailable");
-        const cJson = (await cRes.json()) as CanvasAssignmentsResponse;
-        const gJson = (await gRes.json()) as CalendarEventsResponse;
-        const sJson = sRes.ok
-          ? ((await sRes.json()) as StretchSessionsResponse)
-          : null;
-        if (cancelled) return;
-        setCanvas(cJson);
-        setCalendar(gJson);
+    setCanvas({
+      source: "sample",
+      timezone: TIMEZONE,
+      asOf,
+      assignments: sampleCanvasAssignments(),
+      note: "Sample school work for this public demo.",
+    });
+    setCalendar({
+      source: "sample",
+      timezone: TIMEZONE,
+      asOf,
+      rangeStart,
+      rangeEnd,
+      events: sampleCalendarEvents(),
+      note: "Sample calendar for this public demo.",
+      oauthConfigured: false,
+      connected: false,
+    });
 
-        if (sJson) {
-          const local = emptyStretchUiState();
-          let pick = local.pick;
-          if (sJson.selected) {
-            pick = {
-              dateKey: sJson.dateKey ?? local.dateKey,
-              sessionId: sJson.selected.sessionId,
-              sessionName: sJson.selected.name,
-              autoSelected: Boolean(sJson.autoEnrolled),
-              markedAt: sJson.asOf,
-              confirmedOnRti: Boolean(sJson.selfEnrolled),
-              mocked: sJson.source === "sample",
-              source: sJson.source,
-            };
-            writeStretchPick(pick);
-          } else if (pick?.autoSelected && sJson.sessions.length) {
-            // Keep local PE reminder until server enroll lands.
-          }
-
-          setStretch({
-            ...local,
-            isStretchMorning: Boolean(sJson.isStretchMorning),
-            deadlinePassed: Boolean(sJson.deadlinePassed),
-            deadlineHour: sJson.deadlineHour ?? local.deadlineHour,
-            dateKey: sJson.dateKey ?? local.dateKey,
-            pick,
-            sessions: sJson.sessions,
-            source: sJson.source,
-            credentialMode: sJson.credentialMode,
-            note: sJson.note ?? null,
-            loginUrl: sJson.loginUrl ?? RTI_SCHEDULER_URL,
-            error: sJson.error ?? null,
-          });
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setLoadError(err instanceof Error ? err.message : "Load failed");
-        }
-      }
-    }
-
-    void load();
-
-    return () => {
-      cancelled = true;
-    };
+    const local = emptyStretchUiState();
+    setStretch({
+      ...local,
+      isStretchMorning: isStretchDay(partsNow),
+      deadlinePassed: stretchDeadlinePassed(partsNow, STRETCH_DEADLINE_HOUR),
+      deadlineHour: STRETCH_DEADLINE_HOUR,
+      sessions: sampleStretchSessions(),
+      source: "sample",
+      credentialMode: "none",
+      note: SAMPLE_STRETCH_NOTE,
+      loginUrl: RTI_SCHEDULER_URL,
+      error: null,
+    });
   }, []);
 
   const parts = now ? getDenverParts(now) : null;
   const greeting = parts ? greetingForHour(parts.hour) : "Good morning";
   const dateLabel = now ? formatDenverDateLong(now) : "Loading date…";
 
-  async function enrollOption(
+  function enrollOption(
     sessionId: string,
     sessionName: string,
     autoSelected = false,
   ) {
     if (!stretch) return;
-    setStretch({ ...stretch, enrollingId: sessionId, error: null });
-    try {
-      const res = await fetch("/api/stretch/enroll", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, sessionName, autoSelected }),
-      });
-      const json = (await res.json()) as StretchEnrollResponse;
-      const pick = {
-        dateKey: stretch.dateKey,
-        sessionId: json.sessionId,
-        sessionName: json.sessionName,
-        autoSelected: json.autoSelected,
-        markedAt: json.asOf,
-        confirmedOnRti: json.ok && !json.mocked,
-        mocked: json.mocked,
-        source: json.source,
-      };
-      writeStretchPick(pick);
-      setStretch({
-        ...stretch,
-        pick,
-        enrollingId: null,
-        note: json.note ?? stretch.note,
-        error: json.ok ? null : json.error ?? json.note ?? "Enrollment failed",
-        source: json.source,
-      });
-    } catch (err) {
-      setStretch({
-        ...stretch,
-        enrollingId: null,
-        error: err instanceof Error ? err.message : "Enrollment failed",
-      });
-    }
+    const pick = {
+      dateKey: stretch.dateKey,
+      sessionId,
+      sessionName,
+      autoSelected,
+      markedAt: new Date().toISOString(),
+      confirmedOnRti: false,
+      mocked: true,
+      source: "sample" as const,
+    };
+    writeStretchPick(pick);
+    setStretch({
+      ...stretch,
+      pick,
+      enrollingId: null,
+      note: "Saved locally for this demo — no school account is contacted.",
+      error: null,
+      source: "sample",
+    });
   }
 
   function resetPick() {
@@ -293,13 +255,6 @@ export function MorningBrief({ initialWeather }: Props) {
             )}
           </div>
           {calendar?.note ? <p className={styles.note}>{calendar.note}</p> : null}
-          {!calendar?.connected && calendar?.oauthConfigured === false ? (
-            <p className={styles.note}>
-              Optional:{" "}
-              <a href="/api/google/oauth/start">Connect Google Calendar</a> after
-              client secrets are set.
-            </p>
-          ) : null}
           <ul className={styles.list}>
             {(calendar?.events ?? []).map((e, i) => (
               <li
@@ -363,34 +318,23 @@ export function MorningBrief({ initialWeather }: Props) {
               </div>
             </div>
             <p className={styles.note}>
-              Tap a session to enroll via school-timeline on{" "}
+              Tap a session to save a local demo pick. Open{" "}
               <a href={stretch.loginUrl} target="_blank" rel="noreferrer">
                 RTI Scheduler
-              </a>
-              . On Mon/Wed, if nothing is picked by {stretch.deadlineHour}:00 AM
-              Denver, we auto-enroll PE Stretch.
+              </a>{" "}
+              separately if you need the real school tool.
             </p>
-            {stretch.credentialMode === "none" ? (
-              <p className={styles.note}>
-                Live enroll needs a one-time Mac SSO cookie setup (SESSION +
-                XSRF). Until then, taps use sample/mock enrollment.
-              </p>
-            ) : null}
             {stretch.note ? <p className={styles.note}>{stretch.note}</p> : null}
             {stretch.error ? <p className={styles.error}>{stretch.error}</p> : null}
 
             {stretch.pick ? (
               <div className={styles.stretchResult}>
                 <p className={styles.stretchPick}>
-                  {stretch.pick.autoSelected ? "Auto-selected: " : "Enrolled: "}
+                  {stretch.pick.autoSelected ? "Auto-selected: " : "Picked: "}
                   <strong>{stretch.pick.sessionName}</strong>
                 </p>
                 <p className={styles.note}>
-                  {stretch.pick.confirmedOnRti
-                    ? "Confirmed on RTI Scheduler (school-timeline)."
-                    : stretch.pick.mocked
-                      ? "Mock only — add RTI SESSION + XSRF secrets for real enroll."
-                      : "Saved here — RTI still needs a fresh SESSION/XSRF cookie."}
+                  Local demo pick only — nothing is sent to a school account.
                 </p>
                 <div className={styles.actions}>
                   <a
@@ -432,7 +376,7 @@ export function MorningBrief({ initialWeather }: Props) {
                             ? "Enrolling…"
                             : session.seatsLabel ??
                               (stretch.credentialMode === "none"
-                                ? "Mock enroll"
+                                ? "Saving…"
                                 : session.isPeStretch
                                   ? "Default"
                                   : "Enroll")}

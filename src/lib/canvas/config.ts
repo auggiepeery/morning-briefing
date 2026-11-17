@@ -1,8 +1,4 @@
-/**
- * Default school Canvas LMS origin. Override anytime with CANVAS_BASE_URL.
- * Never use the public marketing/login portal (instructure.com/canvas/login).
- */
+/** Display-only school LMS host label for sample UI copy. */
 export const DEFAULT_CANVAS_BASE_URL = "https://wasatch.instructure.com";
 
-export const DEFAULT_CANVAS_HINT =
-  "Wasatch Canvas is the default host label in sample UI; live LMS sync is not shipped in this public build.";
+export const DEFAULT_CANVAS_HINT = "Sample school work for this public demo.";
