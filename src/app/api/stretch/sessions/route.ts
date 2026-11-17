@@ -3,7 +3,7 @@ import {
   findPeStretch,
   getStretchSessions,
 } from "@/lib/rti/client";
-import { getRtiConfig } from "@/lib/rti/config";
+import { getRtiConfig, rtiLoginUrl } from "@/lib/rti/config";
 import { STRETCH_DEADLINE_HOUR } from "@/lib/stretch";
 import {
   getDenverParts,
@@ -68,9 +68,8 @@ export async function GET() {
     }
   }
 
-  const config = getRtiConfig();
   if (!response.loginUrl) {
-    response.loginUrl = `${config.baseUrl}/choose-login`;
+    response.loginUrl = rtiLoginUrl(getRtiConfig());
   }
 
   return Response.json(response);
