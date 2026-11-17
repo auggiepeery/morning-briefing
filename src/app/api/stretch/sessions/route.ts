@@ -14,11 +14,10 @@ import type { StretchSessionsResponse } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const forceShow = url.searchParams.has("stretch");
+export async function GET() {
   const parts = getDenverParts();
-  const isStretchMorning = forceShow || isStretchDay(parts);
+  // Visibility is always on; isStretchMorning is Mon/Wed only (PE auto-enroll gate).
+  const isStretchMorning = isStretchDay(parts);
   const deadlinePassed = stretchDeadlinePassed(parts, STRETCH_DEADLINE_HOUR);
 
   const base = await getStretchSessions();
@@ -31,12 +30,8 @@ export async function GET(request: Request) {
     dateKey: parts.dateKey,
   };
 
-  if (!isStretchMorning) {
-    return Response.json(response);
-  }
-
   const alreadyPicked = Boolean(response.selfEnrolled || response.selected);
-  if (deadlinePassed && !alreadyPicked) {
+  if (isStretchMorning && deadlinePassed && !alreadyPicked) {
     const pe = findPeStretch(response.sessions);
     if (pe) {
       const enrolled = await enrollStretchOption(pe.sessionId, {

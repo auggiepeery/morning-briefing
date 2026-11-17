@@ -35,11 +35,11 @@ npm install
 npm run dev
 ```
 
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173). Preview stretch UI any day with `?stretch`.
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173). Stretch options are always visible.
 
 ## Stretch (rtischeduler.com)
 
-Visible **Monday and Wednesday** (America/Denver), or any day with `?stretch`.
+Options UI is always shown. PE auto-enroll still runs only on **Monday and Wednesday** after **8:00 AM America/Denver**.
 
 1. `GET /api/stretch/sessions` lists open sessions from RTI when credentials are set (otherwise sample options).
 2. Tapping a session calls `POST /api/stretch/enroll`, which POSTs the real RTI self-enrollment endpoint server-side.

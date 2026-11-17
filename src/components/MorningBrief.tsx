@@ -15,7 +15,6 @@ import {
 } from "@/lib/denver";
 import {
   RTI_SCHEDULER_URL,
-  STRETCH_DEADLINE_HOUR,
   clearStretchPick,
   emptyStretchUiState,
   writeStretchPick,
@@ -52,17 +51,13 @@ export function MorningBrief({ initialWeather }: Props) {
     setNow(new Date());
 
     async function load() {
-      const forceStretch = new URLSearchParams(window.location.search).has(
-        "stretch",
-      );
-      const stretchQuery = forceStretch ? "?stretch=1" : "";
-      setStretch(emptyStretchUiState(forceStretch));
+      setStretch(emptyStretchUiState());
 
       try {
         const [cRes, gRes, sRes] = await Promise.all([
           fetch("/api/canvas/assignments", { cache: "no-store" }),
           fetch("/api/calendar/events", { cache: "no-store" }),
-          fetch(`/api/stretch/sessions${stretchQuery}`, { cache: "no-store" }),
+          fetch("/api/stretch/sessions", { cache: "no-store" }),
         ]);
         if (!cRes.ok || !gRes.ok) throw new Error("Briefing APIs unavailable");
         const cJson = (await cRes.json()) as CanvasAssignmentsResponse;
@@ -75,9 +70,7 @@ export function MorningBrief({ initialWeather }: Props) {
         setCalendar(gJson);
 
         if (sJson) {
-          const local = emptyStretchUiState(
-            Boolean(sJson.isStretchMorning) || forceStretch,
-          );
+          const local = emptyStretchUiState();
           let pick = local.pick;
           if (sJson.selected) {
             pick = {
@@ -97,7 +90,7 @@ export function MorningBrief({ initialWeather }: Props) {
 
           setStretch({
             ...local,
-            isStretchMorning: Boolean(sJson.isStretchMorning) || forceStretch,
+            isStretchMorning: Boolean(sJson.isStretchMorning),
             deadlinePassed: Boolean(sJson.deadlinePassed),
             deadlineHour: sJson.deadlineHour ?? local.deadlineHour,
             dateKey: sJson.dateKey ?? local.dateKey,
@@ -224,7 +217,7 @@ export function MorningBrief({ initialWeather }: Props) {
             <span className={styles.weatherDetail}>{weatherDetail}</span>
           </p>
           <p className={styles.lede}>
-            Missing work, today’s calendar, and stretch on Mon/Wed mornings.
+            Missing work, today’s calendar, and stretch options.
           </p>
         </div>
       </header>
@@ -348,7 +341,7 @@ export function MorningBrief({ initialWeather }: Props) {
           </ul>
         </section>
 
-        {stretch?.isStretchMorning ? (
+        {stretch ? (
           <section className={styles.section} aria-labelledby="stretch-heading">
             <div className={styles.sectionHead}>
               <h2 id="stretch-heading">Stretch</h2>
@@ -374,8 +367,8 @@ export function MorningBrief({ initialWeather }: Props) {
               <a href={stretch.loginUrl} target="_blank" rel="noreferrer">
                 rtischeduler.com
               </a>
-              . If nothing is picked by {stretch.deadlineHour}:00 AM, we
-              auto-select PE Stretch here (still confirm on RTI with school
+              . On Mon/Wed, if nothing is picked by {stretch.deadlineHour}:00 AM
+              Denver, we auto-select PE Stretch (still confirm on RTI with school
               SSO).
             </p>
             {stretch.note ? <p className={styles.note}>{stretch.note}</p> : null}
@@ -444,15 +437,7 @@ export function MorningBrief({ initialWeather }: Props) {
               </div>
             )}
           </section>
-        ) : (
-          <section className={styles.sectionQuiet}>
-            <p>
-              Stretch is Mon/Wed only. After {STRETCH_DEADLINE_HOUR}:00 AM with
-              no pick, PE Stretch is auto-selected. Preview anytime with{" "}
-              <code>?stretch</code>.
-            </p>
-          </section>
-        )}
+        ) : null}
       </main>
     </div>
   );
