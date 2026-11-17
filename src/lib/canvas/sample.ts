@@ -1,5 +1,5 @@
 import type { CanvasAssignment } from "../types";
-import { TIMEZONE, getDenverParts, denverWallToUtcGuess } from "../denver";
+import { getDenverParts, denverWallToUtcGuess } from "../denver";
 
 function offsetDay(base: ReturnType<typeof getDenverParts>, dayDelta: number, hour: number) {
   const probe = denverWallToUtcGuess({
@@ -62,4 +62,5 @@ export function sampleCanvasAssignments(): CanvasAssignment[] {
   ];
 }
 
-export const SAMPLE_CANVAS_NOTE = `Sample Canvas data — set CANVAS_ACCESS_TOKEN for live missing work (${TIMEZONE}). CANVAS_BASE_URL defaults to Wasatch and remains overridable.`;
+export const SAMPLE_CANVAS_NOTE =
+  "Sample Canvas data — set CANVAS_ACCESS_TOKEN for live missing work. CANVAS_BASE_URL defaults to Wasatch and remains overridable.";
