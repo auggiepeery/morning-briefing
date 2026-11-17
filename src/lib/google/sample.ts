@@ -50,4 +50,4 @@ export function sampleCalendarEvents(): CalendarEvent[] {
 }
 
 export const SAMPLE_CALENDAR_NOTE =
-  "Sample calendar — live Google Calendar sync is not shipped in this public build.";
+  "Sample calendar for this public demo.";

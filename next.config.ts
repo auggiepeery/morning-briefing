@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Personal briefing reads live secrets/time; keep routing simple.
+  // Sample public demo UI.
 };
 
 export default nextConfig;
