@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type {
   CalendarEventsResponse,
   CanvasAssignmentsResponse,
+  WeatherResponse,
 } from "@/lib/types";
 import {
   formatDenverDateLong,
@@ -21,8 +22,25 @@ import {
 } from "@/lib/stretch";
 import styles from "./MorningBrief.module.css";
 
-export function MorningBrief() {
+type Props = {
+  initialWeather: WeatherResponse;
+};
+
+const CONDITION_CLASS: Record<WeatherResponse["condition"], string> = {
+  clear: styles.condClear,
+  "clear-night": styles.condClearNight,
+  "partly-cloudy": styles.condPartlyCloudy,
+  overcast: styles.condOvercast,
+  "cloudy-night": styles.condCloudyNight,
+  fog: styles.condFog,
+  rain: styles.condRain,
+  snow: styles.condSnow,
+  storm: styles.condStorm,
+};
+
+export function MorningBrief({ initialWeather }: Props) {
   const [now, setNow] = useState<Date | null>(null);
+  const [weather] = useState(initialWeather);
   const [canvas, setCanvas] = useState<CanvasAssignmentsResponse | null>(null);
   const [calendar, setCalendar] = useState<CalendarEventsResponse | null>(null);
   const [stretch, setStretch] = useState<StretchUiState | null>(null);
@@ -83,10 +101,18 @@ export function MorningBrief() {
     setStretch(buildStretchUiState(stretch.isStretchMorning));
   }
 
+  const conditionClass = CONDITION_CLASS[weather.condition] ?? styles.condClear;
+  const weatherLine =
+    weather.line ??
+    (weather.source === "fallback" ? "Midway · weather offline" : null);
+
   return (
-    <div className={styles.shell}>
+    <div className={`${styles.shell} ${conditionClass}`}>
       <div className={styles.atmosphere} aria-hidden="true">
-        <div className={styles.sun} />
+        <div className={styles.skyGlow} />
+        <div className={styles.orb} />
+        <div className={styles.cloudBank} />
+        <div className={styles.precip} />
         <div className={styles.haze} />
         <div className={styles.grain} />
       </div>
@@ -101,6 +127,11 @@ export function MorningBrief() {
           Your morning line — missing work, today’s calendar, and stretch when
           it counts.
         </p>
+        {weatherLine ? (
+          <p className={styles.weatherLine} aria-live="polite">
+            {weatherLine}
+          </p>
+        ) : null}
         <p className={styles.tz}>America/Denver</p>
       </header>
 

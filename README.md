@@ -1,10 +1,10 @@
 # Firstlight — Morning Briefing
 
-Personal morning briefing for America/Denver: greeting, Canvas missing work, Google Calendar, and Mon/Wed stretch (RTI Scheduler).
+Personal morning briefing for America/Denver: greeting, live Midway weather hero, Canvas missing work, Google Calendar, and Mon/Wed stretch (RTI Scheduler).
 
 ## Stack
 
-Next.js App Router + TypeScript. Secrets stay server-side (`process.env`); the browser only calls `/api/*`.
+Next.js App Router + TypeScript. Secrets stay server-side (`process.env`); the browser only calls `/api/*`. Midway weather is fetched server-side from Open-Meteo (no API key).
 
 ## Secrets
 
