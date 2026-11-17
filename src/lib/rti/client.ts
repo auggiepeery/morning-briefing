@@ -1,10 +1,11 @@
+import { denverWallToUtcGuess, getDenverParts } from "../denver";
 import { PE_STRETCH_NAME } from "../stretch";
 import type {
   StretchEnrollResponse,
   StretchSessionOption,
   StretchSessionsResponse,
 } from "../types";
-import { getRtiConfig, type RtiConfig } from "./config";
+import { getRtiConfig, rtiLoginUrl, type RtiConfig } from "./config";
 import { SAMPLE_STRETCH_NOTE, sampleStretchSessions } from "./sample";
 
 type RtiOpenSession = {
@@ -31,6 +32,30 @@ type RtiSelfEnrollmentInfo = {
   selfEnrolled?: boolean;
   student?: { id?: number | string; firstName?: string; lastName?: string };
   schedule?: { sessionScheduleId?: number | string; name?: string };
+};
+
+type RtiUserEntity = {
+  role?: string | null;
+  school?: { id?: number | string; name?: string | null } | null;
+  entity?: { id?: number | string; firstName?: string; lastName?: string } | null;
+};
+
+type RtiAgendaSchedule = {
+  sessionScheduleId?: number | string;
+  name?: string | null;
+  scheduleStart?: number | string | null;
+  scheduleEnd?: number | string | null;
+  studentEnrollment?: boolean | null;
+  studentEnrollmentStart?: number | string | null;
+  studentEnrollmentEnd?: number | string | null;
+  status?: string | null;
+  mySessions?: unknown[] | null;
+};
+
+type ResolvedSessionContext = {
+  studentId: string;
+  sessionScheduleId: string;
+  schoolId: string | null;
 };
 
 function isPeStretchName(name: string): boolean {
@@ -85,18 +110,22 @@ function authHeaders(config: RtiConfig): HeadersInit {
   return headers;
 }
 
-function sessionsPath(config: RtiConfig): string {
+function sessionsPath(config: RtiConfig, ctx: ResolvedSessionContext): string {
   if (config.mode === "email_keys") {
     return `${config.baseUrl}/self-enrollment-api/operations/self-enrollment/student/${encodeURIComponent(config.studentSelfEnrollKey!)}/schedule/${encodeURIComponent(config.scheduleSelfEnrollmentKey!)}`;
   }
-  return `${config.baseUrl}/self-enrollment-api/operations/self-enrollment/student/${encodeURIComponent(config.studentId!)}/schedule/${encodeURIComponent(config.sessionScheduleId!)}/logged-in-self-enrollment`;
+  return `${config.baseUrl}/self-enrollment-api/operations/self-enrollment/student/${encodeURIComponent(ctx.studentId)}/schedule/${encodeURIComponent(ctx.sessionScheduleId)}/logged-in-self-enrollment`;
 }
 
-function enrollPath(config: RtiConfig, sessionId: string): string {
+function enrollPath(
+  config: RtiConfig,
+  ctx: ResolvedSessionContext,
+  sessionId: string,
+): string {
   if (config.mode === "email_keys") {
     return `${config.baseUrl}/self-enrollment-api/operations/self-enrollment/student/${encodeURIComponent(config.studentSelfEnrollKey!)}/session/${encodeURIComponent(sessionId)}`;
   }
-  return `${config.baseUrl}/self-enrollment-api/operations/self-enrollment/student/${encodeURIComponent(config.studentId!)}/session/${encodeURIComponent(sessionId)}/logged-in-self-enrollment`;
+  return `${config.baseUrl}/self-enrollment-api/operations/self-enrollment/student/${encodeURIComponent(ctx.studentId)}/session/${encodeURIComponent(sessionId)}/logged-in-self-enrollment`;
 }
 
 async function rtiFetchJson<T>(
@@ -123,10 +152,16 @@ async function rtiFetchJson<T>(
         typeof (parsed as { message: unknown }).message === "string"
           ? (parsed as { message: string }).message
           : null;
+      let message = fromBody || `RTI ${res.status}: ${text.slice(0, 180)}`;
+      if (res.status === 401 || res.status === 403) {
+        message =
+          fromBody ||
+          "RTI session expired or blocked (401/403). Refresh SESSION + XSRF-TOKEN-PROD from a Mac SSO login, then update secrets.";
+      }
       return {
         ok: false,
         status: res.status,
-        message: fromBody || `RTI ${res.status}: ${text.slice(0, 180)}`,
+        message,
       };
     }
 
@@ -140,20 +175,227 @@ async function rtiFetchJson<T>(
   }
 }
 
+function denverDayBoundsMs(now = new Date()): { start: number; end: number } {
+  const parts = getDenverParts(now);
+  const start = denverWallToUtcGuess({
+    year: parts.year,
+    month: parts.month,
+    day: parts.day,
+    hour: 0,
+    minute: 0,
+  }).getTime();
+  const end = denverWallToUtcGuess({
+    year: parts.year,
+    month: parts.month,
+    day: parts.day,
+    hour: 23,
+    minute: 59,
+  }).getTime();
+  return { start, end };
+}
+
+async function discoverStudentAndSchool(
+  config: RtiConfig,
+): Promise<
+  | { ok: true; studentId: string; schoolId: string | null }
+  | { ok: false; message: string; status: number }
+> {
+  if (config.studentId) {
+    return {
+      ok: true,
+      studentId: config.studentId,
+      schoolId: config.schoolId,
+    };
+  }
+
+  const result = await rtiFetchJson<RtiUserEntity[]>(
+    `${config.baseUrl}/user/entities`,
+    { method: "GET", headers: authHeaders(config) },
+  );
+  if (!result.ok) {
+    return {
+      ok: false,
+      status: result.status,
+      message:
+        result.message ||
+        "Could not load /user/entities — set RTI_STUDENT_ID manually or refresh SESSION.",
+    };
+  }
+
+  const entities = Array.isArray(result.data) ? result.data : [];
+  const students = entities.filter(
+    (e) => String(e.role ?? "").toLowerCase() === "student" && e.entity?.id != null,
+  );
+  const pick = students[0] ?? entities.find((e) => e.entity?.id != null);
+  if (!pick?.entity?.id) {
+    return {
+      ok: false,
+      status: 0,
+      message:
+        "No student entity on this SESSION. Log into school-timeline with the student Google account, then refresh the cookie.",
+    };
+  }
+
+  return {
+    ok: true,
+    studentId: String(pick.entity.id),
+    schoolId: config.schoolId ?? (pick.school?.id != null ? String(pick.school.id) : null),
+  };
+}
+
+function scoreEnrollableSchedule(schedule: RtiAgendaSchedule, nowMs: number): number {
+  if (schedule.studentEnrollment === false) return -1000;
+  if (String(schedule.status ?? "").toLowerCase() === "hidden") return -500;
+  let score = 0;
+  if (schedule.studentEnrollment) score += 50;
+  const start = schedule.studentEnrollmentStart
+    ? Number(schedule.studentEnrollmentStart)
+    : null;
+  const end = schedule.studentEnrollmentEnd
+    ? Number(schedule.studentEnrollmentEnd)
+    : null;
+  if (start != null && !Number.isNaN(start) && nowMs >= start) score += 10;
+  if (end != null && !Number.isNaN(end) && nowMs <= end) score += 20;
+  if (end != null && !Number.isNaN(end) && nowMs > end) score -= 40;
+  const mine = Array.isArray(schedule.mySessions) ? schedule.mySessions.length : 0;
+  if (mine === 0) score += 15;
+  return score;
+}
+
+async function discoverSessionScheduleId(
+  config: RtiConfig,
+  studentId: string,
+  schoolId: string | null,
+): Promise<
+  | { ok: true; sessionScheduleId: string }
+  | { ok: false; message: string; status: number }
+> {
+  if (config.sessionScheduleId) {
+    return { ok: true, sessionScheduleId: config.sessionScheduleId };
+  }
+
+  if (!schoolId) {
+    return {
+      ok: false,
+      status: 0,
+      message:
+        "RTI_SESSION_SCHEDULE_ID is unset and school id is unknown. Set RTI_SCHOOL_ID or RTI_SESSION_SCHEDULE_ID.",
+    };
+  }
+
+  const { start, end } = denverDayBoundsMs();
+  const url =
+    `${config.baseUrl}/api/operations/schedule/school/${encodeURIComponent(schoolId)}/schedules-by-date-range` +
+    `?start=${start}&end=${end}&withSessionsForStudent=${encodeURIComponent(studentId)}&spanningAnyAmountOfRange=true`;
+
+  const result = await rtiFetchJson<{ schedules?: RtiAgendaSchedule[] }>(url, {
+    method: "GET",
+    headers: authHeaders(config),
+  });
+  if (!result.ok) {
+    return {
+      ok: false,
+      status: result.status,
+      message:
+        result.message ||
+        "Could not discover today’s schedule. Set RTI_SESSION_SCHEDULE_ID from school-timeline.",
+    };
+  }
+
+  const schedules = result.data.schedules ?? [];
+  if (!schedules.length) {
+    return {
+      ok: false,
+      status: 0,
+      message:
+        "No RTI schedules found for today for this student. Set RTI_SESSION_SCHEDULE_ID from school-timeline, or try on a stretch day.",
+    };
+  }
+
+  const nowMs = Date.now();
+  const ranked = [...schedules]
+    .map((s) => ({ s, score: scoreEnrollableSchedule(s, nowMs) }))
+    .sort((a, b) => b.score - a.score);
+
+  const best = ranked[0]?.s;
+  const id = best?.sessionScheduleId != null ? String(best.sessionScheduleId) : "";
+  if (!id) {
+    return {
+      ok: false,
+      status: 0,
+      message: "Today’s RTI schedules had no sessionScheduleId.",
+    };
+  }
+
+  return { ok: true, sessionScheduleId: id };
+}
+
+async function resolveSessionContext(
+  config: RtiConfig,
+): Promise<
+  | { ok: true; ctx: ResolvedSessionContext }
+  | { ok: false; message: string; status: number }
+> {
+  if (config.mode === "email_keys") {
+    return {
+      ok: true,
+      ctx: {
+        studentId: config.studentSelfEnrollKey!,
+        sessionScheduleId: config.scheduleSelfEnrollmentKey!,
+        schoolId: config.schoolId,
+      },
+    };
+  }
+
+  if (config.mode !== "session_cookie") {
+    return { ok: false, status: 0, message: "RTI credentials not configured" };
+  }
+
+  const who = await discoverStudentAndSchool(config);
+  if (!who.ok) return who;
+
+  const schedule = await discoverSessionScheduleId(
+    config,
+    who.studentId,
+    who.schoolId,
+  );
+  if (!schedule.ok) return schedule;
+
+  return {
+    ok: true,
+    ctx: {
+      studentId: who.studentId,
+      sessionScheduleId: schedule.sessionScheduleId,
+      schoolId: who.schoolId,
+    },
+  };
+}
+
 export async function fetchLiveStretchInfo(
   config: RtiConfig = getRtiConfig(),
 ): Promise<
-  | { ok: true; info: RtiSelfEnrollmentInfo; sessions: StretchSessionOption[] }
+  | {
+      ok: true;
+      info: RtiSelfEnrollmentInfo;
+      sessions: StretchSessionOption[];
+      ctx: ResolvedSessionContext;
+    }
   | { ok: false; message: string; status: number }
 > {
   if (config.mode === "none") {
     return { ok: false, status: 0, message: "RTI credentials not configured" };
   }
 
-  const result = await rtiFetchJson<RtiSelfEnrollmentInfo>(sessionsPath(config), {
-    method: "GET",
-    headers: authHeaders(config),
-  });
+  const resolved = await resolveSessionContext(config);
+  if (!resolved.ok) return resolved;
+
+  const result = await rtiFetchJson<RtiSelfEnrollmentInfo>(
+    sessionsPath(config, resolved.ctx),
+    {
+      method: "GET",
+      headers: authHeaders(config),
+    },
+  );
 
   if (!result.ok) return result;
 
@@ -161,25 +403,45 @@ export async function fetchLiveStretchInfo(
     .map(normalizeOpenSession)
     .filter((s): s is StretchSessionOption => Boolean(s));
 
-  return { ok: true, info: result.data, sessions };
+  return { ok: true, info: result.data, sessions, ctx: resolved.ctx };
 }
 
 export async function enrollInStretchSession(
   sessionId: string,
   config: RtiConfig = getRtiConfig(),
+  ctx?: ResolvedSessionContext,
 ): Promise<{ ok: true } | { ok: false; message: string; status: number }> {
   if (config.mode === "none") {
     return { ok: false, status: 0, message: "RTI credentials not configured" };
   }
 
-  const result = await rtiFetchJson<unknown>(enrollPath(config, sessionId), {
-    method: "POST",
-    headers: {
-      ...authHeaders(config),
-      "Content-Type": "application/json",
+  let resolved = ctx;
+  if (!resolved) {
+    const r = await resolveSessionContext(config);
+    if (!r.ok) return r;
+    resolved = r.ctx;
+  }
+
+  if (config.mode === "session_cookie" && !config.xsrfToken) {
+    return {
+      ok: false,
+      status: 0,
+      message:
+        "RTI_XSRF_TOKEN is required for school-timeline enroll POSTs. Copy XSRF-TOKEN-PROD from Mac DevTools after SSO.",
+    };
+  }
+
+  const result = await rtiFetchJson<unknown>(
+    enrollPath(config, resolved, sessionId),
+    {
+      method: "POST",
+      headers: {
+        ...authHeaders(config),
+        "Content-Type": "application/json",
+      },
+      body: null,
     },
-    body: null,
-  });
+  );
 
   if (!result.ok) return result;
   return { ok: true };
@@ -194,6 +456,7 @@ export function findPeStretch(
 export async function getStretchSessions(): Promise<StretchSessionsResponse> {
   const asOf = new Date().toISOString();
   const config = getRtiConfig();
+  const loginUrl = rtiLoginUrl(config);
 
   if (config.mode === "none") {
     const sessions = sampleStretchSessions();
@@ -205,7 +468,7 @@ export async function getStretchSessions(): Promise<StretchSessionsResponse> {
       sessions,
       selected: null,
       note: SAMPLE_STRETCH_NOTE,
-      loginUrl: `${config.baseUrl}/choose-login`,
+      loginUrl,
     };
   }
 
@@ -219,7 +482,7 @@ export async function getStretchSessions(): Promise<StretchSessionsResponse> {
       sessions: sampleStretchSessions(),
       selected: null,
       note: `RTI live fetch failed (${live.message}). Showing sample options.`,
-      loginUrl: `${config.baseUrl}/choose-login`,
+      loginUrl,
       error: live.message,
     };
   }
@@ -227,6 +490,11 @@ export async function getStretchSessions(): Promise<StretchSessionsResponse> {
   const selected = live.info.selectedSession
     ? normalizeOpenSession(live.info.selectedSession)
     : null;
+
+  const resolvedLogin =
+    live.ctx.schoolId != null
+      ? `${config.baseUrl}/ui/school-timeline/${encodeURIComponent(live.ctx.schoolId)}`
+      : loginUrl;
 
   return {
     source: "live",
@@ -236,7 +504,7 @@ export async function getStretchSessions(): Promise<StretchSessionsResponse> {
     sessions: live.sessions,
     selected,
     selfEnrolled: Boolean(live.info.selfEnrolled),
-    loginUrl: `${config.baseUrl}/choose-login`,
+    loginUrl: resolvedLogin,
     autoEnrolled: false,
   };
 }
@@ -248,6 +516,7 @@ export async function enrollStretchOption(
   const asOf = new Date().toISOString();
   const config = getRtiConfig();
   const autoSelected = Boolean(opts?.autoSelected);
+  const loginUrl = rtiLoginUrl(config);
 
   if (config.mode === "none") {
     const samples = sampleStretchSessions();
@@ -268,7 +537,8 @@ export async function enrollStretchOption(
       sessionId: match.sessionId,
       sessionName: match.name,
       autoSelected,
-      note: "Mock enrollment — RTI credentials are not set. Add self-enroll keys or a SESSION cookie to enroll for real.",
+      note: "Mock enrollment — RTI school-timeline secrets are not set. Add SESSION + XSRF (Mac SSO once) to enroll for real.",
+      loginUrl,
     };
   }
 
@@ -285,6 +555,7 @@ export async function enrollStretchOption(
       autoSelected,
       note: live.message,
       error: live.message,
+      loginUrl,
     };
   }
 
@@ -310,6 +581,7 @@ export async function enrollStretchOption(
       autoSelected,
       note: "That session is not in today’s open list on RTI Scheduler.",
       error: "session_not_found",
+      loginUrl,
     };
   }
 
@@ -326,11 +598,16 @@ export async function enrollStretchOption(
         sessionName: already.name,
         autoSelected,
         note: "Already enrolled in this session on RTI Scheduler.",
+        loginUrl,
       };
     }
   }
 
-  const enrolled = await enrollInStretchSession(target.sessionId, config);
+  const enrolled = await enrollInStretchSession(
+    target.sessionId,
+    config,
+    live.ctx,
+  );
   if (!enrolled.ok) {
     return {
       source: "live",
@@ -343,7 +620,7 @@ export async function enrollStretchOption(
       autoSelected,
       note: enrolled.message,
       error: enrolled.message,
-      loginUrl: `${config.baseUrl}/choose-login`,
+      loginUrl,
     };
   }
 
@@ -358,6 +635,7 @@ export async function enrollStretchOption(
     autoSelected,
     note: autoSelected
       ? "Auto-enrolled in PE Stretch on RTI Scheduler after the 8:00 AM Denver deadline."
-      : "Enrolled on RTI Scheduler.",
+      : "Enrolled on RTI Scheduler (school-timeline).",
+    loginUrl,
   };
 }

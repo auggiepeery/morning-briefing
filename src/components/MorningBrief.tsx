@@ -363,14 +363,19 @@ export function MorningBrief({ initialWeather }: Props) {
               </div>
             </div>
             <p className={styles.note}>
-              Tap a session to enroll on{" "}
+              Tap a session to enroll via school-timeline on{" "}
               <a href={stretch.loginUrl} target="_blank" rel="noreferrer">
-                rtischeduler.com
+                RTI Scheduler
               </a>
               . On Mon/Wed, if nothing is picked by {stretch.deadlineHour}:00 AM
-              Denver, we auto-select PE Stretch (still confirm on RTI with school
-              SSO).
+              Denver, we auto-enroll PE Stretch.
             </p>
+            {stretch.credentialMode === "none" ? (
+              <p className={styles.note}>
+                Live enroll needs a one-time Mac SSO cookie setup (SESSION +
+                XSRF). Until then, taps use sample/mock enrollment.
+              </p>
+            ) : null}
             {stretch.note ? <p className={styles.note}>{stretch.note}</p> : null}
             {stretch.error ? <p className={styles.error}>{stretch.error}</p> : null}
 
@@ -382,10 +387,10 @@ export function MorningBrief({ initialWeather }: Props) {
                 </p>
                 <p className={styles.note}>
                   {stretch.pick.confirmedOnRti
-                    ? "Confirmed on RTI Scheduler."
+                    ? "Confirmed on RTI Scheduler (school-timeline)."
                     : stretch.pick.mocked
-                      ? "Mock enrollment (RTI secrets not set)."
-                      : "Saved here — RTI enrollment still pending or needs refreshed credentials."}
+                      ? "Mock only — add RTI SESSION + XSRF secrets for real enroll."
+                      : "Saved here — RTI still needs a fresh SESSION/XSRF cookie."}
                 </p>
                 <div className={styles.actions}>
                   <a
@@ -394,7 +399,7 @@ export function MorningBrief({ initialWeather }: Props) {
                     target="_blank"
                     rel="noreferrer"
                   >
-                    Open RTI Scheduler
+                    Open school timeline
                   </a>
                   <button type="button" className={styles.btnGhost} onClick={resetPick}>
                     Choose again
@@ -425,7 +430,12 @@ export function MorningBrief({ initialWeather }: Props) {
                         <span className={styles.optionAside}>
                           {stretch.enrollingId === session.sessionId
                             ? "Enrolling…"
-                            : session.seatsLabel ?? (session.isPeStretch ? "Default" : "Enroll")}
+                            : session.seatsLabel ??
+                              (stretch.credentialMode === "none"
+                                ? "Mock enroll"
+                                : session.isPeStretch
+                                  ? "Default"
+                                  : "Enroll")}
                         </span>
                       </button>
                     </li>

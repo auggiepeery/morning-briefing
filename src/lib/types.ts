@@ -93,7 +93,7 @@ export type StretchSessionsResponse = {
   source: DataSource;
   timezone: "America/Denver";
   asOf: string;
-  credentialMode: "email_keys" | "session_cookie" | "none";
+  credentialMode: "session_cookie" | "email_keys" | "none";
   sessions: StretchSessionOption[];
   selected: StretchSessionOption | null;
   selfEnrolled?: boolean;
