@@ -18,5 +18,11 @@ export async function GET() {
       clientSecretSet: Boolean(process.env.GOOGLE_CLIENT_SECRET?.trim()),
       refreshTokenSet: Boolean(process.env.GOOGLE_REFRESH_TOKEN?.trim()),
     },
+    weather: {
+      place: "Midway",
+      latitude: 40.5122,
+      longitude: -111.4744,
+      provider: "open-meteo",
+    },
   });
 }

@@ -1,5 +1,33 @@
 export type DataSource = "live" | "sample";
 
+export type WeatherCondition =
+  | "clear"
+  | "clear-night"
+  | "partly-cloudy"
+  | "overcast"
+  | "cloudy-night"
+  | "fog"
+  | "rain"
+  | "snow"
+  | "storm";
+
+export type WeatherResponse = {
+  source: "live" | "fallback";
+  timezone: "America/Denver";
+  asOf: string;
+  place: string;
+  latitude: number;
+  longitude: number;
+  temperatureF: number | null;
+  weatherCode: number | null;
+  isDay: boolean;
+  condition: WeatherCondition;
+  summary: string;
+  /** e.g. "42° · Snow in Midway"; null when fallback has no reading */
+  line: string | null;
+  note?: string;
+};
+
 export type CanvasAssignment = {
   id: string;
   name: string;
