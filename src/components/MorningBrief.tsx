@@ -98,7 +98,7 @@ export function MorningBrief({ initialWeather }: Props) {
   const greeting = parts ? greetingForHour(parts.hour) : "Good morning";
   const dateLabel = now ? formatDenverDateLong(now) : "Loading date…";
 
-  function enrollOption(
+  function pickStretchOption(
     sessionId: string,
     sessionName: string,
     autoSelected = false,
@@ -196,7 +196,7 @@ export function MorningBrief({ initialWeather }: Props) {
                   canvas.source === "sample" ? styles.badgeSample : styles.badgeLive
                 }
               >
-                {canvas.source === "sample" ? "Sample data" : "Live Canvas"}
+                {canvas.source === "sample" ? "Sample data" : "Canvas"}
               </span>
             ) : (
               <span className={styles.badgeMuted}>Loading…</span>
@@ -248,7 +248,7 @@ export function MorningBrief({ initialWeather }: Props) {
                   calendar.source === "sample" ? styles.badgeSample : styles.badgeLive
                 }
               >
-                {calendar.source === "sample" ? "Sample data" : "Live Google"}
+                {calendar.source === "sample" ? "Sample data" : "Calendar"}
               </span>
             ) : (
               <span className={styles.badgeMuted}>Loading…</span>
@@ -310,7 +310,7 @@ export function MorningBrief({ initialWeather }: Props) {
                         : styles.badgeLive
                     }
                   >
-                    {stretch.source === "sample" ? "Sample data" : "Live RTI"}
+                    {stretch.source === "sample" ? "Sample data" : "Stretch"}
                   </span>
                 ) : (
                   <span className={styles.badgeMuted}>Loading…</span>
@@ -360,7 +360,7 @@ export function MorningBrief({ initialWeather }: Props) {
                         className={styles.optionButton}
                         disabled={Boolean(stretch.enrollingId)}
                         onClick={() =>
-                          void enrollOption(session.sessionId, session.name)
+                          void pickStretchOption(session.sessionId, session.name)
                         }
                       >
                         <span className={styles.optionMain}>

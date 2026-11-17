@@ -16,7 +16,7 @@ const body = Figtree({
 export const metadata: Metadata = {
   title: "Firstlight — Morning Briefing",
   description:
-    "Personal morning briefing: Canvas missing work, Google Calendar, and stretch options.",
+    "Sample morning briefing UI for Midway weather and daily planning.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
