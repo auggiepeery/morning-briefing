@@ -53,16 +53,16 @@ export function clearStretchPick(dateKey: string): void {
 }
 
 /**
- * Resolve today's stretch pick: honor stored choice; after 8am Mon/Wed
+ * Resolve today's stretch pick: honor stored choice any day; after 8am Mon/Wed
  * Denver with no pick, auto-select PE Stretch (server also attempts RTI enroll).
  */
 export function resolveStretchPick(
   parts: DenverParts = getDenverParts(),
   existing: StretchPick | null = null,
 ): StretchPick | null {
-  if (!isStretchDay(parts)) return null;
-
   if (existing && existing.dateKey === parts.dateKey) return existing;
+
+  if (!isStretchDay(parts)) return null;
 
   if (stretchDeadlinePassed(parts, STRETCH_DEADLINE_HOUR)) {
     return {
@@ -78,12 +78,11 @@ export function resolveStretchPick(
 }
 
 export function emptyStretchUiState(
-  forceShow = false,
   parts: DenverParts = getDenverParts(),
 ): StretchUiState {
-  const show = forceShow || isStretchDay(parts);
-  const existing = show ? readStretchPick(parts.dateKey) : null;
-  const pick = show ? resolveStretchPick(parts, existing) : null;
+  const isStretchMorning = isStretchDay(parts);
+  const existing = readStretchPick(parts.dateKey);
+  const pick = resolveStretchPick(parts, existing);
 
   if (
     pick &&
@@ -94,7 +93,7 @@ export function emptyStretchUiState(
   }
 
   return {
-    isStretchMorning: show,
+    isStretchMorning,
     deadlineHour: STRETCH_DEADLINE_HOUR,
     deadlinePassed: stretchDeadlinePassed(parts, STRETCH_DEADLINE_HOUR),
     dateKey: parts.dateKey,
